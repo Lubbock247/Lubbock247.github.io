@@ -7,7 +7,7 @@
 <meta name="description" content="Antonio Fajardo · Lubbock247">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/estilo.css?v=17">
+<link rel="stylesheet" href="css/estilo.css?v=18">
 </head>
 <body>
 <div class="frame">
@@ -49,7 +49,7 @@
       <a href="#repositories" data-vista="repositories"><span class="n m">02</span>REPOSITORIES<span class="cnt" id="t-repos"></span></a>
       <a href="#projects" data-vista="projects"><span class="n m">03</span>PROJECTS<span class="cnt" id="t-proj"></span></a>
       <a href="https://github.com/Lubbock247?tab=packages"><span class="n m">04</span>PACKAGES</a>
-      <a href="https://github.com/Lubbock247?tab=stars"><span class="n m">05</span>STARS<span class="cnt" id="t-stars"></span></a>
+      <a href="#stars" data-vista="stars"><span class="n m">05</span>STARS<span class="cnt" id="t-stars"></span></a>
       <a class="perfil" id="perfil" href="https://github.com/Lubbock247" title="GitHub profile" aria-label="GitHub profile"><img id="avatar-mini" alt=""></a>
     </nav>
     <section class="vista" id="vista-repos">
@@ -105,6 +105,14 @@
       <div class="proyectos" id="p-lista"></div>
       </div>
       <div class="p-detalle" id="p-detalle" hidden></div>
+    </section>
+    <section class="vista" id="vista-estrellas" hidden>
+      <div class="prompt"><a class="r" href="#">~/lubbock247 $</a> ls stars/ --sort=starred<span class="blink r">█</span></div>
+      <div class="toolbar">
+        <label class="filtro"><span class="r">&gt;</span><input id="s-buscar" placeholder="filter by name, owner, description, language or topic" autocomplete="off"></label>
+      </div>
+      <div class="resumen m"><span id="s-estado" class="c-estado"></span></div>
+      <div class="estrellas" id="s-lista"></div>
     </section>
     <div class="abajo">
       <section class="act">
@@ -244,11 +252,12 @@
   </form>
 </dialog>
 
-<script src="js/app.js?v=17"></script>
-<script src="js/repos.js?v=17"></script>
-<script src="js/projects.js?v=17"></script>
-<script src="js/nuevo-repo.js?v=17"></script>
-<script src="js/nuevo-proyecto.js?v=17"></script>
-<script src="js/tablero.js?v=17"></script>
+<script src="js/app.js?v=18"></script>
+<script src="js/repos.js?v=18"></script>
+<script src="js/projects.js?v=18"></script>
+<script src="js/nuevo-repo.js?v=18"></script>
+<script src="js/nuevo-proyecto.js?v=18"></script>
+<script src="js/tablero.js?v=18"></script>
+<script src="js/stars.js?v=18"></script>
 </body>
 </html>

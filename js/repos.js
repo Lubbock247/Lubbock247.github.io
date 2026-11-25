@@ -156,6 +156,7 @@ async function alternarEstrella(nombre) {
     } catch {}
   }
   cv.estrellando.delete(nombre);
+  if (hecho && typeof paginaEstrellas !== 'undefined') paginaEstrellas.lista = null;
   if (!hecho) {
     cambiar(tenia);
     cv.estado = 'aviso';

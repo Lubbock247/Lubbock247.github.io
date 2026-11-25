@@ -291,6 +291,20 @@ dialog textarea:focus{outline:none;border-color:var(--c)}
 .dt-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:11px;letter-spacing:.1em}
 .dt-meta .chip{margin-left:auto;padding:5px 10px}
 
+/* Stars page */
+.estrellas{border:1px solid #ff5a3c26;background:#0a080899}
+.srow{display:grid;grid-template-columns:36px minmax(0,1fr) 140px 80px 70px;gap:0 14px;align-items:center;padding:12px;border-top:1px solid #ff5a3c14;font-size:14px}
+.srow.cab{border-top:0;background:#ff5a3c0d;font-size:10px;letter-spacing:.18em;padding:9px 12px}
+.srow:not(.cab):hover{background:#ff5a3c0f;box-shadow:inset 3px 0 0 var(--r)}
+.srow.quitada{opacity:.5}
+.sav{width:32px;height:32px;object-fit:cover;background:#4a140c;clip-path:polygon(0 0,80% 0,100% 20%,100% 100%,20% 100%,0 80%)}
+.snombre{min-width:0;display:flex;flex-direction:column;gap:4px}
+.slinea{display:flex;align-items:center;min-width:0}
+.slinea a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.slinea a:hover{color:var(--r)}
+.slinea .lock,.slinea .fork{flex:none}
+.snombre .rdesc{margin-top:0}
+
 .blink{animation:b 1s steps(1) infinite}@keyframes b{50%{opacity:0}}
 .row{display:grid;grid-template-columns:28px minmax(0,1fr) 130px 70px 90px;padding:9px 6px;border-bottom:1px solid #ff5a3c1a;font-size:14px;align-items:center}
 .row.head{font-size:11px;letter-spacing:.15em}
@@ -345,6 +359,7 @@ dialog input:focus{outline:none;border-color:var(--c)}
   .acciones{flex-wrap:wrap;justify-content:flex-end}
   .campo{grid-template-columns:minmax(0,1fr);gap:6px}
   .trow{grid-template-columns:110px minmax(0,1fr) 130px}
+  .srow{grid-template-columns:30px minmax(0,1fr) 64px;gap:0 10px}
   .columna{flex-basis:240px}
   .dtitulo{font-size:24px}
   .nr-aviso{margin-left:0}

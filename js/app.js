@@ -325,7 +325,9 @@ function vista() {
   const enRed = v === 'followers' || v === 'following';
   const enCarpetas = v === 'repositories';
   const enProyectos = v === 'projects' || v.startsWith('projects/');
-  $('vista-repos').hidden = enRed || enCarpetas || enProyectos;
+  const enEstrellas = v === 'stars';
+  $('vista-repos').hidden = enRed || enCarpetas || enProyectos || enEstrellas;
+  $('vista-estrellas').hidden = !enEstrellas;
   $('vista-red').hidden = !enRed;
   $('vista-carpetas').hidden = !enCarpetas;
   $('vista-proyectos').hidden = !enProyectos;
@@ -334,6 +336,7 @@ function vista() {
   if (enRed) pintarRed(v);
   if (enCarpetas && typeof abrirCarpetas === 'function') abrirCarpetas();
   if (enProyectos && typeof abrirProyectos === 'function') abrirProyectos();
+  if (enEstrellas && typeof abrirEstrellas === 'function') abrirEstrellas();
 }
 
 addEventListener('hashchange', vista);
