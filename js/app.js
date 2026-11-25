@@ -104,6 +104,11 @@ function nivel(n, max) {
   return f > .75 ? '#3ee6d8' : f > .5 ? '#ff5a3c' : f > .25 ? '#b0402c' : '#5a1f15';
 }
 
+// Calendar data and title, kept so it can be redrawn when its width changes.
+let calDias = [];
+let calTitulo = '';
+let calAncho = 0;
+
 // The calendar fills the width of its area; the row height follows the column width, within limits.
 function ajustarCal() {
   const cal = $('cal');
@@ -112,10 +117,27 @@ function ajustarCal() {
   cal.style.setProperty('--alto', Math.round(Math.max(10, Math.min(ancho, 28))) + 'px');
 }
 
-// Draws the calendar like GitHub's: one column per week (Sunday on top), month names above.
-function pintarCeldas(dias) {
+function pintarCeldas(dias, titulo) {
+  calDias = dias;
+  calTitulo = titulo;
+  calAncho = $('cal').clientWidth;
+  dibujarCal();
+}
+
+// Never scrolls: if the whole range does not fit with cells of at least 10px, it shows the latest weeks that do.
+function dibujarCal() {
+  let dias = calDias;
+  if (!dias.length) return;
+  const caben = Math.max(4, Math.floor(($('cal').clientWidth - 4 + 3) / 13));
+  const hueco0 = aFecha(dias[0].fecha).getDay();
+  const semanas = Math.ceil((dias.length + hueco0) / 7);
+  if (semanas > caben) dias = dias.slice((semanas - caben) * 7 - hueco0);
+  $('act-titulo').textContent = semanas > caben
+    ? `// ACTIVITY.LOG — ${Math.round(dias.length / 30.4)}MO`
+    : calTitulo;
+
   const max = Math.max(1, ...dias.map(d => d.n));
-  const hueco = dias.length ? aFecha(dias[0].fecha).getDay() : 0;
+  const hueco = aFecha(dias[0].fecha).getDay();
   const celdas = Array(hueco).fill('<span class="vacia"></span>');
   dias.forEach(d => celdas.push(`<span data-n="${d.n}" data-fecha="${d.fecha}" style="background:${nivel(d.n, max)}"></span>`));
   $('cells').innerHTML = celdas.join('');
@@ -134,8 +156,6 @@ function pintarCeldas(dias) {
   if (dias.length && (!marcas.length || marcas[0][0] >= 3)) marcas.unshift([0, aFecha(dias[0].fecha).getMonth()]);
   marcas.forEach(([col, mes]) => { etiquetas[col] = MESES[mes].slice(0, 3).toUpperCase(); });
   $('meses').innerHTML = etiquetas.map(t => `<span>${t}</span>`).join('');
-
-  $('cal').scrollLeft = $('cal').scrollWidth;
 }
 
 function textoDia(n, fecha) {
@@ -165,9 +185,9 @@ async function actividadCompleta() {
   const d = await graphql(`{ user(login:"${USUARIO}") { contributionsCollection { contributionCalendar {
     totalContributions weeks { contributionDays { date contributionCount } } } } } }`);
   const cal = d.user.contributionsCollection.contributionCalendar;
-  $('act-titulo').textContent = '// ACTIVITY.LOG — 365D';
   $('act-total').textContent = `${cal.totalContributions} CONTRIB · LAST YEAR`;
-  pintarCeldas(cal.weeks.flatMap(w => w.contributionDays).map(x => ({ fecha: x.date, n: x.contributionCount })));
+  pintarCeldas(cal.weeks.flatMap(w => w.contributionDays).map(x => ({ fecha: x.date, n: x.contributionCount })),
+    '// ACTIVITY.LOG — 365D');
 }
 
 async function actividadPublica() {
@@ -187,9 +207,8 @@ async function actividadPublica() {
     total += porDia[f] || 0;
     dias.push({ fecha: f, n: porDia[f] || 0 });
   }
-  $('act-titulo').textContent = '// ACTIVITY.LOG — 90D';
   $('act-total').textContent = `${total} CONTRIB · LAST 90D`;
-  pintarCeldas(dias);
+  pintarCeldas(dias, '// ACTIVITY.LOG — 90D');
 }
 
 async function cargar() {
@@ -202,6 +221,8 @@ async function cargar() {
       ? await api('/user/repos?per_page=100&affiliation=owner&sort=pushed')
       : await api(`/users/${USUARIO}/repos?per_page=100&sort=pushed`);
     pintarRepos(repos);
+    // A token that only reaches public repos (the default when creating one) shows nothing private.
+    if (conToken && !repos.some(r => r.private)) $('estado').textContent = '● ROOT · PUBLIC ONLY';
   } catch (e) {
     $('estado').textContent = '● OFFLINE';
     $('repos').innerHTML = '<div class="row"><span class="r">!</span><span class="m">connection lost</span></div>';
@@ -226,7 +247,12 @@ $('cells').addEventListener('pointerover', e => {
 $('cells').addEventListener('pointerleave', ocultarTip);
 addEventListener('scroll', ocultarTip, true);
 addEventListener('resize', ocultarTip);
-new ResizeObserver(ajustarCal).observe($('cal'));
+new ResizeObserver(() => {
+  const ancho = $('cal').clientWidth;
+  if (ancho === calAncho) return;
+  calAncho = ancho;
+  dibujarCal();
+}).observe($('cal'));
 
 $('id-btn').addEventListener('click', () => {
   $('token').value = token();
