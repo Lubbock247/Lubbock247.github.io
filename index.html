@@ -7,7 +7,7 @@
 <meta name="description" content="Antonio Fajardo · Lubbock247">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/estilo.css?v=16">
+<link rel="stylesheet" href="css/estilo.css?v=17">
 </head>
 <body>
 <div class="frame">
@@ -228,10 +228,27 @@
   </div>
 </dialog>
 
-<script src="js/app.js?v=16"></script>
-<script src="js/repos.js?v=16"></script>
-<script src="js/projects.js?v=16"></script>
-<script src="js/nuevo-repo.js?v=16"></script>
-<script src="js/nuevo-proyecto.js?v=16"></script>
+<dialog id="d-tarea" class="d-nuevo">
+  <form method="dialog" id="dt-form">
+    <div class="tag" id="dt-tag">// CARD</div>
+    <input id="dt-titulo" maxlength="256" autocomplete="off" aria-label="title">
+    <div class="dt-fijo" id="dt-fijo"></div>
+    <div class="dt-meta m" id="dt-meta"></div>
+    <textarea id="dt-cuerpo" rows="6" placeholder="description (optional)" aria-label="description"></textarea>
+    <div class="campo"><span class="m">STATUS</span><div class="grupo envuelve" id="dt-status"></div></div>
+    <div class="botones">
+      <button class="fb on" id="dt-guardar" value="guardar">SAVE</button>
+      <button class="fb" type="button" id="dt-borrar">DELETE</button>
+      <button class="fb" type="button" id="dt-cerrar">CLOSE</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/app.js?v=17"></script>
+<script src="js/repos.js?v=17"></script>
+<script src="js/projects.js?v=17"></script>
+<script src="js/nuevo-repo.js?v=17"></script>
+<script src="js/nuevo-proyecto.js?v=17"></script>
+<script src="js/tablero.js?v=17"></script>
 </body>
 </html>

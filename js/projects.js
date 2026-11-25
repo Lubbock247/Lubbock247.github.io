@@ -11,7 +11,8 @@ const CLAVE_PROYECTOS = 'lubbock-projects';
 const RUTA_PROYECTOS = 'data/projects.json';
 const DEMO = new URLSearchParams(location.search).has('demo');
 
-const pv = { lista: null, origen: '', cargadoCon: null, cargando: null, filtro: 'open', estado: '', mensaje: '', modo: 'tablero' };
+const pv = { lista: null, origen: '', cargadoCon: null, cargando: null, filtro: 'open', estado: '', mensaje: '', modo: 'tablero',
+  anadiendo: null, dEstado: '' };
 
 const claveProyectos = () => { try { return localStorage.getItem(CLAVE_PROYECTOS) || ''; } catch { return ''; } };
 const estadoClaves = () => `${!!token()}|${claveProyectos()}`;
@@ -64,12 +65,12 @@ const PROYECTOS_DEMO = [
 const CONTENIDO = `title number url state repository { name isPrivate }
   assignees(first: 3) { nodes { login avatarUrl } } labels(first: 4) { nodes { name } }`;
 const CONSULTA = `query { viewer { projectsV2(first: 50, orderBy: {field: UPDATED_AT, direction: DESC}) { nodes {
-  number title shortDescription public closed updatedAt url
-  field(name: "Status") { ... on ProjectV2SingleSelectField { options { name } } }
+  id number title shortDescription public closed updatedAt url
+  field(name: "Status") { ... on ProjectV2SingleSelectField { id options { id name } } }
   items(first: 100) { totalCount nodes {
-    type
+    id type
     fieldValueByName(name: "Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } }
-    content { ... on DraftIssue { title } ... on Issue { ${CONTENIDO} } ... on PullRequest { ${CONTENIDO} } }
+    content { ... on DraftIssue { id title body } ... on Issue { ${CONTENIDO} } ... on PullRequest { ${CONTENIDO} } }
   } }
 } } } }`;
 
@@ -94,8 +95,10 @@ function resumirTarea(it) {
   const c = it.content || {};
   const status = (it.fieldValueByName && it.fieldValueByName.name) || '';
   const tipo = it.type === 'DRAFT_ISSUE' ? 'DRAFT' : it.type === 'PULL_REQUEST' ? 'PR' : it.type === 'ISSUE' ? 'ISSUE' : 'PRIVADO';
-  if (tipo === 'PRIVADO' || !c.title) return hacerTarea(status, 'PRIVADO', '');
+  // id / draftId / cuerpo are only used to edit from the owner's browser; they are never published.
+  if (tipo === 'PRIVADO' || !c.title) return hacerTarea(status, 'PRIVADO', '', { id: it.id });
   return hacerTarea(status, tipo, c.title, {
+    id: it.id, draftId: tipo === 'DRAFT' ? c.id : null, cuerpo: c.body || '',
     numero: c.number || null, url: c.url || '', repo: c.repository ? c.repository.name : '',
     estado: c.state || '', privado: !!(c.repository && c.repository.isPrivate),
     asignados: ((c.assignees || {}).nodes || []).map(a => ({ login: a.login, avatar: a.avatarUrl })),
@@ -108,7 +111,9 @@ function resumirProyecto(p) {
   return {
     number: p.number, title: p.title, description: p.shortDescription || '', public: p.public, closed: p.closed,
     updatedAt: p.updatedAt, url: p.url, items: p.items.totalCount, estados: contarEstados(tareas),
-    opciones: p.field && p.field.options ? p.field.options.map(o => o.name) : [], tareas
+    opciones: p.field && p.field.options ? p.field.options.map(o => o.name) : [], tareas,
+    id: p.id, campoId: p.field ? p.field.id : null,
+    opcionIds: Object.fromEntries(((p.field && p.field.options) || []).map(o => [o.name, o.id]))
   };
 }
 
@@ -347,13 +352,18 @@ function avatares(x) {
     `<img class="tav" src="${esc(a.avatar)}" alt="${esc(a.login)}" title="${esc(a.login)}" loading="lazy">`).join('');
 }
 
-function tarjetaTarea(x) {
-  if (x.tipo === 'PRIVADO') return '<div class="tarea oculta"><span class="m">▒▒▒▒ private item</span></div>';
+// The board can be edited by the owner, with the projects key, on live data (not the demo).
+const tableroEditable = p => esDueno() && pv.origen === 'vivo' && !DEMO && !!p.id && typeof abrirTarea === 'function';
+
+function tarjetaTarea(x, editable) {
+  const datos = editable ? ` data-i="${x.i}" draggable="true"` : '';
+  if (x.tipo === 'PRIVADO') return `<div class="tarea oculta${editable ? ' editable' : ''}"${datos}><span class="m">▒▒▒▒ private item</span></div>`;
   const etiquetas = x.etiquetas.length ? `<div class="tetis">${x.etiquetas.map(e => `<span>${esc(e)}</span>`).join('')}</div>` : '';
   const dentro = `
       <div class="ttitulo">${esc(x.titulo)}</div>
       <div class="tmeta m">${etiquetaTipo(x)}${x.repo ? `<span class="trepo">${esc(x.repo)}</span>` : ''}</div>
       ${etiquetas || x.asignados.length ? `<div class="tpie">${etiquetas}<span class="tavs">${avatares(x)}</span></div>` : ''}`;
+  if (editable) return `<div class="tarea editable${x.pendiente ? ' pendiente' : ''}"${datos} tabindex="0">${dentro}</div>`;
   return x.url
     ? `<a class="tarea" href="${esc(x.url)}" target="_blank" rel="noopener">${dentro}</a>`
     : `<div class="tarea">${dentro}</div>`;
@@ -381,12 +391,22 @@ function pintarDetalle(numero) {
   const e = p.estados;
   const total = Math.max(1, e.todo + e.doing + e.done + e.none);
   const seg = (k, n) => n ? `<i class="s-${k}" style="width:${n / total * 100}%"></i>` : '';
+  const editable = tableroEditable(p);
+  if (p.tareas) p.tareas.forEach((x, i) => { x.i = i; });
   let cuerpo;
   if (!p.tareas) cuerpo = '<div class="vacio m">// the cards of this project are not published yet</div>';
-  else if (!p.tareas.length) cuerpo = '<div class="vacio m">// empty board · add cards on GitHub</div>';
+  else if (!p.tareas.length && !editable) cuerpo = '<div class="vacio m">// empty board</div>';
   else if (pv.modo === 'tabla') {
     const filas = p.tareas.map(x => x.tipo === 'PRIVADO'
-      ? `<div class="trow oculta"><span class="tstatus"><i class="s-${grupoEstado(x.status)}"></i>${esc(x.status || 'No status')}</span><span class="m">▒▒▒▒ private item</span><span></span><span class="hide-sm"></span><span class="hide-sm"></span></div>`
+      ? `<div class="trow oculta${editable ? ' editable' : ''}"${editable ? ` data-i="${x.i}"` : ''}><span class="tstatus"><i class="s-${grupoEstado(x.status)}"></i>${esc(x.status || 'No status')}</span><span class="m">▒▒▒▒ private item</span><span></span><span class="hide-sm"></span><span class="hide-sm"></span></div>`
+      : editable
+        ? `<div class="trow editable" data-i="${x.i}" tabindex="0">
+          <span class="tstatus"><i class="s-${grupoEstado(x.status)}"></i>${esc(x.status || 'No status')}</span>
+          <span class="ttitulo">${esc(x.titulo)}</span>
+          <span>${etiquetaTipo(x)}</span>
+          <span class="hide-sm m">${esc(x.repo)}</span>
+          <span class="hide-sm tavs">${avatares(x)}</span>
+        </div>`
       : `<${x.url ? `a href="${esc(x.url)}" target="_blank" rel="noopener"` : 'div'} class="trow">
           <span class="tstatus"><i class="s-${grupoEstado(x.status)}"></i>${esc(x.status || 'No status')}</span>
           <span class="ttitulo">${esc(x.titulo)}</span>
@@ -394,12 +414,19 @@ function pintarDetalle(numero) {
           <span class="hide-sm m">${esc(x.repo)}</span>
           <span class="hide-sm tavs">${avatares(x)}</span>
         </${x.url ? 'a' : 'div'}>`).join('');
-    cuerpo = `<div class="ttabla"><div class="trow cab m"><span>STATUS</span><span>TITLE</span><span>TYPE</span><span class="hide-sm">REPO</span><span class="hide-sm">WHO</span></div>${filas}</div>`;
+    cuerpo = `<div class="ttabla"><div class="trow cab m"><span>STATUS</span><span>TITLE</span><span>TYPE</span><span class="hide-sm">REPO</span><span class="hide-sm">WHO</span></div>${filas}</div>
+      ${editable ? '<button type="button" class="anadir anadir-tabla" data-anadir="">+ ADD ITEM</button>' : ''}`;
   } else {
-    cuerpo = `<div class="tablero">${columnas(p).map(col => `
-      <section class="columna">
+    const cols = columnas(p);
+    // An editable board always shows its columns, even with no cards yet.
+    if (!cols.length && editable) cols.push({ nombre: '', tareas: [] });
+    cuerpo = `<div class="tablero${editable ? ' editable' : ''}">${cols.map(col => `
+      <section class="columna" data-col="${esc(col.nombre)}">
         <div class="ccab"><i class="s-${grupoEstado(col.nombre)}"></i><span>${esc((col.nombre || 'No status').toUpperCase())}</span><span class="ccount">${col.tareas.length}</span></div>
-        <div class="ctareas">${col.tareas.length ? col.tareas.map(tarjetaTarea).join('') : '<div class="vacia-c m">// empty</div>'}</div>
+        <div class="ctareas">${col.tareas.length ? col.tareas.map(x => tarjetaTarea(x, editable)).join('') : '<div class="vacia-c m">// empty</div>'}</div>
+        ${editable ? (pv.anadiendo === col.nombre
+          ? `<div class="anadir-caja"><input id="d-nueva" maxlength="256" placeholder="title, then Enter" autocomplete="off"></div>`
+          : `<button type="button" class="anadir" data-anadir="${esc(col.nombre)}">+ ADD ITEM</button>`) : ''}
       </section>`).join('')}</div>`;
   }
   caja.innerHTML = `
@@ -419,7 +446,10 @@ function pintarDetalle(numero) {
         <span class="m"><span class="c">${e.done}</span> / ${p.items} DONE</span></div>` : ''}
       ${p.items > 100 ? '<div class="m nota">// showing the first 100 cards</div>' : ''}
     </div>
+    ${editable && pv.dEstado ? `<div class="resumen m"><span class="c-estado">${pv.dEstado}</span></div>` : ''}
     ${cuerpo}`;
+  const nueva = $('d-nueva');
+  if (nueva) nueva.focus();
 }
 
 $('p-detalle').addEventListener('click', e => {

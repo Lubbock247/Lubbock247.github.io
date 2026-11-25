@@ -267,6 +267,30 @@ a.trow:hover{background:#ff5a3c14;box-shadow:inset 3px 0 0 var(--r)}
 .tstatus i{width:8px;height:8px;flex:none}
 .trow .ttipo{font-size:10px;letter-spacing:.1em}
 
+/* Editing a board */
+.tablero.editable .tarea.editable{cursor:grab}
+.tarea.editable:focus-visible{outline:1px solid var(--c);outline-offset:1px}
+.tarea.pendiente{opacity:.55;cursor:progress}
+.tarea.arrastrando{opacity:.35}
+.tarea.antes{position:relative}
+.tarea.antes::before{content:"";position:absolute;left:0;right:0;top:-6px;height:3px;background:var(--r);box-shadow:0 0 8px var(--r)}
+.ctareas.al-final::after{content:"";display:block;height:3px;background:var(--r);box-shadow:0 0 8px var(--r)}
+.columna.sobre{border-color:#ff5a3c88}
+.tarea.editable:hover{border-color:var(--r);box-shadow:inset 3px 0 0 var(--r)}
+.anadir{margin:0 10px 10px;padding:8px 10px;border:1px dashed #ff5a3c44;color:var(--m);font-size:11px;letter-spacing:.2em;text-align:left}
+.anadir:hover{color:var(--r);border-color:var(--r);background:#ff5a3c0a}
+.anadir-tabla{margin:8px 0 0;width:100%}
+.anadir-caja{padding:0 10px 10px}
+.anadir-caja input{width:100%;background:#140d0c;border:1px solid var(--c);color:var(--tx);font:inherit;font-size:13px;padding:9px;outline:none}
+.trow.editable{cursor:pointer}
+.trow.editable:hover{background:#ff5a3c14;box-shadow:inset 3px 0 0 var(--r)}
+dialog textarea{width:100%;margin-top:12px;background:#140d0c;border:1px solid #ff5a3c55;color:var(--tx);font:inherit;font-size:13px;
+  line-height:1.5;padding:9px;resize:vertical;min-height:110px}
+dialog textarea:focus{outline:none;border-color:var(--c)}
+.dt-fijo{margin-top:12px;font-size:16px;line-height:1.4}
+.dt-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:11px;letter-spacing:.1em}
+.dt-meta .chip{margin-left:auto;padding:5px 10px}
+
 .blink{animation:b 1s steps(1) infinite}@keyframes b{50%{opacity:0}}
 .row{display:grid;grid-template-columns:28px minmax(0,1fr) 130px 70px 90px;padding:9px 6px;border-bottom:1px solid #ff5a3c1a;font-size:14px;align-items:center}
 .row.head{font-size:11px;letter-spacing:.15em}
