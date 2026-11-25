@@ -51,8 +51,14 @@ async function cargarCarpetas() {
   cv.sha = null;
   if (dueno) {
     // The owner reads the file straight from the repo, so a save shows up before the site redeploys.
+    // no-store: GitHub lets browsers keep this answer for 60 s, and an old copy breaks the next save.
     try {
-      const j = await api(`/repos/${REPO_SITIO}/contents/${RUTA_CARPETAS}?ref=main`);
+      const r = await fetch(`https://api.github.com/repos/${REPO_SITIO}/contents/${RUTA_CARPETAS}?ref=main`, {
+        headers: { Authorization: 'Bearer ' + token(), Accept: 'application/vnd.github+json' },
+        cache: 'no-store'
+      });
+      if (!r.ok) throw new Error(r.status);
+      const j = await r.json();
       datos = JSON.parse(deBase64(j.content));
       cv.sha = j.sha;
     } catch {}
@@ -113,7 +119,7 @@ function fila(r, ultima, plano) {
     <div class="rrow" draggable="${dueno}" data-repo="${esc(r.name)}">
       <span class="rama">${plano ? '<span class="r">▸</span>' : (ultima ? '└─' : '├─')}</span>
       <div class="rnombre">
-        <a href="${esc(r.html_url)}"${dueno ? ' draggable="false"' : ''}>${esc(r.name)}</a>${r.private ? '<span class="lock">PRIVATE</span>' : ''}${r.fork ? '<span class="fork">fork</span>' : ''}${plano && c ? `<span class="ftag" style="color:${c.color}">/${esc(c.nombre)}</span>` : ''}
+        <a href="${esc(r.html_url)}"${dueno ? ' draggable="false"' : ''}>${esc(r.name)}</a>${r.private ? '<span class="lock">PRIVATE</span>' : ''}${r.fork ? '<span class="fork">fork</span>' : ''}${plano && c ? `<span class="ftag"><i style="background:${c.color}"></i>/${esc(c.nombre)}</span>` : ''}
         ${r.description ? `<div class="rdesc">${esc(r.description)}</div>` : ''}
       </div>
       <span class="hide-sm">${r.language ? `<i class="dot" style="background:${COLORES[r.language] || '#888'}"></i>${esc(r.language)}` : '<span class="m">—</span>'}</span>
@@ -262,7 +268,7 @@ async function guardarCarpetas() {
   const h = { Authorization: 'Bearer ' + clave, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' };
   const url = `https://api.github.com/repos/${REPO_SITIO}/contents/${RUTA_CARPETAS}`;
   const leerSha = async () => {
-    const g = await fetch(url + '?ref=main', { headers: h });
+    const g = await fetch(url + '?ref=main', { headers: h, cache: 'no-store' });
     if (g.ok) return (await g.json()).sha;
     if (g.status === 401) throw new Error('rechazada');
     if (g.status === 404) return null;
@@ -276,8 +282,10 @@ async function guardarCarpetas() {
   try {
     if (!cv.sha) cv.sha = await leerSha();
     let r = await subir(cv.sha);
-    if (r.status === 409 || r.status === 422) {
-      // The file changed since it was read (another tab, or a save still landing): read it again and retry once.
+    // The file changed since it was read (another tab, or a save still landing):
+    // read it again and retry, waiting a little longer each time.
+    for (let intento = 1; (r.status === 409 || r.status === 422) && intento <= 3; intento++) {
+      await new Promise(ok => setTimeout(ok, 700 * intento));
       cv.sha = await leerSha();
       r = await subir(cv.sha);
     }
