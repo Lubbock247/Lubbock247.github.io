@@ -1,6 +1,12 @@
 {
   "folders": [
     {
+      "id": "tools",
+      "name": "tools",
+      "color": "#e8c547",
+      "repos": []
+    },
+    {
       "id": "games",
       "name": "games",
       "color": "#ff5a3c",
@@ -14,12 +20,6 @@
         "charcaland",
         "cv"
       ]
-    },
-    {
-      "id": "tools",
-      "name": "tools",
-      "color": "#e8c547",
-      "repos": []
     }
   ]
 }
