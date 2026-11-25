@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lubbock247</title>
+<meta name="description" content="Antonio Fajardo · Lubbock247">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css?v=1">
+</head>
+<body>
+<div class="frame">
+  <header class="top">
+    <span>LUBBOCK247://NET</span>
+    <span class="hide-sm">NODE MISLATA.VLC</span>
+    <span id="estado">● ONLINE</span>
+    <span id="reloj" class="push"></span>
+  </header>
+
+  <aside class="side">
+    <div class="banner">
+      <img id="avatar" class="av" alt="">
+      <button id="id-btn" class="tag id" type="button">ID · 0247</button>
+    </div>
+    <div class="ficha">
+      <h1 id="nombre" data-text="Antonio Fajardo">Antonio<br>Fajardo</h1>
+      <a id="handle" class="c handle" href="https://github.com/Lubbock247">@Lubbock247</a>
+      <div class="lineas">
+        <div class="ln"><span class="m">ROLE</span><span>DAW student</span></div>
+        <div class="ln"><span class="m">LOC</span><span>Mislata · VLC</span></div>
+        <div class="ln"><span class="m">ORG</span><span>Ghestec</span></div>
+        <div class="ln"><span class="m">STACK</span><span id="stack">—</span></div>
+        <div class="ln"><span class="m">STATS</span><span><span class="c" id="n-repos">–</span> repos · <span class="c" id="n-commits">–</span> contrib · <span class="c" id="n-seg">–</span> followers</span></div>
+      </div>
+      <nav class="botones">
+        <a class="fb on" href="https://github.com/Lubbock247">GITHUB</a>
+        <a class="fb" href="/cv/">CV</a>
+        <a class="fb" id="org-link" href="https://github.com/Lubbock247?tab=organizations">GHESTEC</a>
+      </nav>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="prompt"><span class="r">~/lubbock247 $</span> ls -la repos/ --sort=updated<span class="blink r">█</span></div>
+    <div class="tabla">
+      <div class="row head m"><span></span><span>NAME</span><span>LANG</span><span class="hide-sm">STARS</span><span>UPDATED</span></div>
+      <div id="repos"></div>
+    </div>
+    <div class="abajo">
+      <div>
+        <div class="tag" id="act-titulo">// ACTIVITY.LOG</div>
+        <div class="cells" id="cells"></div>
+      </div>
+      <div>
+        <div class="tag">// LANG.DIST</div>
+        <div id="langs" class="langs"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<dialog id="ajustes">
+  <form method="dialog" id="form-token">
+    <div class="tag">// ACCESS_KEY</div>
+    <input id="token" type="password" autocomplete="off" spellcheck="false">
+    <div class="err" id="token-err"></div>
+    <div class="botones">
+      <button class="fb on" id="guardar" value="guardar">SAVE</button>
+      <button class="fb" id="borrar" value="borrar" type="button">CLEAR</button>
+      <button class="fb" value="cerrar">CLOSE</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/app.js?v=1"></script>
+</body>
+</html>
