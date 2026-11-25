@@ -83,7 +83,7 @@ function pintarRepos(repos) {
   $('t-repos').textContent = visibles.length;
 
   $('repos').innerHTML = lista.map(r => `
-    <a class="row" href="${esc(r.html_url)}">
+    <a class="row" href="${enlaceRepo(r.full_name)}">
       <span class="r">▸</span>
       <span class="nm">${esc(r.name)}${r.private ? '<span class="lock">PRIVATE</span>' : ''}${r.fork ? '<span class="fork">fork</span>' : ''}</span>
       <span>${r.language ? `<i class="dot" style="background:${COLORES[r.language] || '#888'}"></i>${esc(r.language)}` : '<span class="m">—</span>'}</span>
@@ -326,17 +326,23 @@ function vista() {
   const enCarpetas = v === 'repositories';
   const enProyectos = v === 'projects' || v.startsWith('projects/');
   const enEstrellas = v === 'stars';
-  $('vista-repos').hidden = enRed || enCarpetas || enProyectos || enEstrellas;
+  const enRepo = v.startsWith('repo/');
+  $('vista-repos').hidden = enRed || enCarpetas || enProyectos || enEstrellas || enRepo;
+  $('vista-repo').hidden = !enRepo;
   $('vista-estrellas').hidden = !enEstrellas;
   $('vista-red').hidden = !enRed;
   $('vista-carpetas').hidden = !enCarpetas;
   $('vista-proyectos').hidden = !enProyectos;
   // #projects/3 still lights up the PROJECTS tab.
-  document.querySelectorAll('[data-vista]').forEach(a => a.classList.toggle('on', a.dataset.vista === v.split('/')[0]));
+  // A repo of this account lights up REPOSITORIES; someone else's (opened from stars) lights up STARS.
+  let pestana = v.split('/')[0];
+  if (enRepo) pestana = (v.split('/')[1] || '').toLowerCase() === USUARIO.toLowerCase() ? 'repositories' : 'stars';
+  document.querySelectorAll('[data-vista]').forEach(a => a.classList.toggle('on', a.dataset.vista === pestana));
   if (enRed) pintarRed(v);
   if (enCarpetas && typeof abrirCarpetas === 'function') abrirCarpetas();
   if (enProyectos && typeof abrirProyectos === 'function') abrirProyectos();
   if (enEstrellas && typeof abrirEstrellas === 'function') abrirEstrellas();
+  if (enRepo && typeof abrirRepo === 'function') abrirRepo();
 }
 
 addEventListener('hashchange', vista);

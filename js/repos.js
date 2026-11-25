@@ -187,7 +187,7 @@ function fila(r, ultima, plano) {
     <div class="rrow" draggable="${dueno}" data-repo="${esc(r.name)}">
       <span class="rama">${plano ? '<span class="r">▸</span>' : (ultima ? '└─' : '├─')}</span>
       <div class="rnombre">
-        <a href="${esc(r.html_url)}"${dueno ? ' draggable="false"' : ''}>${esc(r.name)}</a>${r.private ? '<span class="lock">PRIVATE</span>' : ''}${r.fork ? '<span class="fork">fork</span>' : ''}${plano && c ? `<span class="ftag"><i style="background:${c.color}"></i>/${esc(c.nombre)}</span>` : ''}
+        <a href="${enlaceRepo(r.full_name)}"${dueno ? ' draggable="false"' : ''}>${esc(r.name)}</a>${r.private ? '<span class="lock">PRIVATE</span>' : ''}${r.fork ? '<span class="fork">fork</span>' : ''}${plano && c ? `<span class="ftag"><i style="background:${c.color}"></i>/${esc(c.nombre)}</span>` : ''}
         ${r.description ? `<div class="rdesc">${esc(r.description)}</div>` : ''}
       </div>
       <span class="hide-sm">${r.language ? `<i class="dot" style="background:${COLORES[r.language] || '#888'}"></i>${esc(r.language)}` : '<span class="m">—</span>'}</span>

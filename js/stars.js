@@ -52,7 +52,7 @@ function filaEstrella(r) {
     <div class="srow${quitada ? ' quitada' : ''}">
       <img class="sav" src="${esc(r.owner.avatar_url)}&s=64" alt="" loading="lazy">
       <div class="snombre">
-        <div class="slinea"><a href="${esc(r.html_url)}"><span class="m">${esc(r.owner.login)} /</span> ${esc(r.name)}</a>${r.private ? '<span class="lock">PRIVATE</span>' : ''}${r.archived ? '<span class="fork">ARCHIVED</span>' : ''}${r.fork ? '<span class="fork">fork</span>' : ''}</div>
+        <div class="slinea"><a href="${enlaceRepo(r.full_name)}"><span class="m">${esc(r.owner.login)} /</span> ${esc(r.name)}</a>${r.private ? '<span class="lock">PRIVATE</span>' : ''}${r.archived ? '<span class="fork">ARCHIVED</span>' : ''}${r.fork ? '<span class="fork">fork</span>' : ''}</div>
         ${r.description ? `<div class="rdesc">${esc(r.description)}</div>` : ''}
         ${temas.length ? `<div class="tetis">${temas.map(t => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
       </div>
