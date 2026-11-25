@@ -65,8 +65,8 @@ function pintarPerfil(u) {
   }
   $('avatar-mini').src = u.avatar_url;
   $('perfil').href = u.html_url;
-  $('n-sig').textContent = u.following;
-  $('n-seg').textContent = u.followers;
+  $('n-sig').textContent = $('t-sig').textContent = u.following;
+  $('n-seg').textContent = $('t-seg').textContent = u.followers;
 }
 
 function pintarRepos(repos) {
@@ -181,13 +181,25 @@ function mostrarTip(celda) {
 
 const ocultarTip = () => { $('tip').hidden = true; };
 
-async function actividadCompleta() {
-  const d = await graphql(`{ user(login:"${USUARIO}") { contributionsCollection { contributionCalendar {
-    totalContributions weeks { contributionDays { date contributionCount } } } } } }`);
-  const cal = d.user.contributionsCollection.contributionCalendar;
+function pintarCalendario(cal) {
   $('act-total').textContent = `${cal.totalContributions} CONTRIB · LAST YEAR`;
   pintarCeldas(cal.weeks.flatMap(w => w.contributionDays).map(x => ({ fecha: x.date, n: x.contributionCount })),
     '// ACTIVITY.LOG — 365D');
+}
+
+// With a key: the live calendar from the GraphQL API.
+async function actividadCompleta() {
+  const d = await graphql(`{ user(login:"${USUARIO}") { contributionsCollection { contributionCalendar {
+    totalContributions weeks { contributionDays { date contributionCount } } } } } }`);
+  pintarCalendario(d.user.contributionsCollection.contributionCalendar);
+}
+
+// Without a key: the same calendar, saved once a day by the GitHub Action in data/contrib.json.
+async function actividadGuardada() {
+  const r = await fetch('data/contrib.json', { cache: 'no-cache' });
+  if (!r.ok) throw new Error(r.status);
+  const j = await r.json();
+  pintarCalendario(j.data.user.contributionsCollection.contributionCalendar);
 }
 
 async function actividadPublica() {
@@ -230,15 +242,84 @@ async function cargar() {
     return;
   }
   api(`/users/${USUARIO}/starred?per_page=100`).then(s => { $('t-stars').textContent = s.length; }).catch(() => {});
-  api(`/users/${USUARIO}/orgs`).then(orgs => {
-    if (orgs[0]) $('org-link').href = 'https://github.com/' + orgs[0].login;
-  }).catch(() => {});
   try {
-    if (conToken) await actividadCompleta(); else await actividadPublica();
+    if (conToken) await actividadCompleta(); else await actividadGuardada();
   } catch {
-    try { await actividadPublica(); } catch {}
+    try { await actividadGuardada(); } catch {
+      try { await actividadPublica(); } catch {}
+    }
   }
 }
+
+// ---- Followers / following view (#followers, #following) ----
+
+const red = { listas: null, detalles: {} };
+
+async function listasRed() {
+  if (!red.listas) {
+    const [followers, following] = await Promise.all([
+      api(`/users/${USUARIO}/followers?per_page=100`),
+      api(`/users/${USUARIO}/following?per_page=100`)
+    ]);
+    red.listas = { followers, following };
+  }
+  return red.listas;
+}
+
+function tarjeta(u, mutuo) {
+  const d = red.detalles[u.login] || {};
+  const etiquetas = (mutuo ? '<span class="lock">MUTUAL</span>' : '') + (u.type === 'Organization' ? '<span class="fork">ORG</span>' : '');
+  const sub = [d.name, d.location].filter(Boolean).map(esc).join(' · ');
+  const stats = d.login
+    ? `<span class="c">${d.public_repos}</span> repo${d.public_repos === 1 ? '' : 's'}` +
+      (d.followers != null ? ` · <span class="c">${d.followers}</span> follower${d.followers === 1 ? '' : 's'}` : '')
+    : '';
+  return `
+    <a class="persona" href="${esc(u.html_url)}">
+      <img class="pav" src="${esc(u.avatar_url)}&s=112" alt="" loading="lazy">
+      <div class="pdatos">
+        <div class="plogin">${esc(u.login)}${etiquetas}</div>
+        ${sub ? `<div class="pnombre m">${sub}</div>` : ''}
+        ${d.bio ? `<div class="pbio">${esc(d.bio)}</div>` : ''}
+        ${stats ? `<div class="m">${stats}</div>` : ''}
+      </div>
+    </a>`;
+}
+
+async function pintarRed(tipo) {
+  $('red-dir').textContent = tipo;
+  $('gente').innerHTML = '<div class="vacio m">loading…</div>';
+  let listas;
+  try { listas = await listasRed(); } catch {
+    $('gente').innerHTML = '<div class="vacio r">! connection lost</div>';
+    return;
+  }
+  const otra = new Set(listas[tipo === 'followers' ? 'following' : 'followers'].map(u => u.login));
+  const pintar = () => {
+    if (location.hash.slice(1) !== tipo) return;
+    const lista = listas[tipo];
+    $('gente').innerHTML = lista.length
+      ? lista.map(u => tarjeta(u, otra.has(u.login))).join('')
+      : '<div class="vacio m">// empty</div>';
+  };
+  pintar();
+  const faltan = listas[tipo].filter(u => !red.detalles[u.login]);
+  if (faltan.length) {
+    await Promise.all(faltan.map(u => api(`/users/${u.login}`).then(d => { red.detalles[u.login] = d; }).catch(() => {})));
+    pintar();
+  }
+}
+
+function vista() {
+  const v = location.hash.slice(1);
+  const enRed = v === 'followers' || v === 'following';
+  $('vista-repos').hidden = enRed;
+  $('vista-red').hidden = !enRed;
+  document.querySelectorAll('[data-vista]').forEach(a => a.classList.toggle('on', a.dataset.vista === v));
+  if (enRed) pintarRed(v);
+}
+
+addEventListener('hashchange', vista);
 
 $('cells').addEventListener('pointerover', e => {
   const celda = e.target.closest('[data-n]');
@@ -257,6 +338,7 @@ new ResizeObserver(() => {
 $('id-btn').addEventListener('click', () => {
   $('token').value = token();
   $('token-err').textContent = '';
+  $('token-err').classList.remove('ok');
   $('ajustes').showModal();
 });
 
@@ -264,11 +346,26 @@ $('guardar').addEventListener('click', async e => {
   e.preventDefault();
   const t = $('token').value.trim();
   if (!t) { $('token-err').textContent = 'empty key'; return; }
-  const r = await fetch('https://api.github.com/user', { headers: { Authorization: 'Bearer ' + t } });
+  const h = { Authorization: 'Bearer ' + t, Accept: 'application/vnd.github+json' };
+  const r = await fetch('https://api.github.com/user', { headers: h });
   if (!r.ok) { $('token-err').textContent = 'invalid key'; return; }
   localStorage.setItem(CLAVE_TOKEN, t);
-  $('ajustes').close();
   cargar();
+  // Say what the key can see, so a key limited to public repos is obvious.
+  let privados = 0;
+  try {
+    const repos = await (await fetch('https://api.github.com/user/repos?per_page=100&affiliation=owner', { headers: h })).json();
+    privados = repos.filter(x => x.private).length;
+  } catch {}
+  const err = $('token-err');
+  if (privados) {
+    err.classList.add('ok');
+    err.textContent = `key ok · ${privados} private repos visible`;
+    setTimeout(() => { if ($('ajustes').open) $('ajustes').close(); }, 1500);
+  } else {
+    err.classList.remove('ok');
+    err.textContent = 'key saved, but it only sees public repos. On GitHub, edit the key: Repository access → All repositories, Contents → Read-only.';
+  }
 });
 
 $('borrar').addEventListener('click', () => {
@@ -282,3 +379,4 @@ $('token').addEventListener('input', () => { $('token-err').textContent = ''; })
 reloj();
 setInterval(reloj, 30000);
 cargar();
+vista();

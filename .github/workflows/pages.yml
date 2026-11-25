@@ -1,0 +1,52 @@
+name: Deploy site
+
+# Publishes the site and saves the public contribution calendar to data/contrib.json,
+# so visitors without a key see the same calendar. Runs on every push and once a day.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build site folder
+        run: rsync -a --exclude .git --exclude .github --exclude data --exclude README.md --exclude .gitignore ./ _site/
+
+      - name: Save contribution calendar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p _site/data
+          gh api graphql \
+            -f login="${{ github.repository_owner }}" \
+            -f query='query($login: String!) { user(login: $login) { contributionsCollection { contributionCalendar {
+              totalContributions weeks { contributionDays { date contributionCount } } } } } }' \
+            > _site/data/contrib.json \
+          || echo "::warning::Could not fetch the contribution calendar; the site falls back to recent public activity."
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

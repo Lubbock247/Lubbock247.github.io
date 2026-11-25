@@ -7,7 +7,7 @@
 <meta name="description" content="Antonio Fajardo · Lubbock247">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/estilo.css?v=4">
+<link rel="stylesheet" href="css/estilo.css?v=5">
 </head>
 <body>
 <div class="frame">
@@ -29,16 +29,16 @@
       <div class="lineas">
         <div class="ln"><span class="m">ROLE</span><span>DAW student</span></div>
         <div class="ln"><span class="m">LOC</span><span>Mislata · VLC</span></div>
-        <div class="ln"><span class="m">ORG</span><span>Ghestec</span></div>
+        <a class="ln link" href="https://github.com/Ghestec"><span class="m">ORG</span><span>Ghestec</span></a>
         <div class="ln"><span class="m">STACK</span><span id="stack">—</span></div>
-        <div class="ln"><span class="m">REPOS</span><a class="c" id="n-repos" href="https://github.com/Lubbock247?tab=repositories">–</a></div>
-        <div class="ln"><span class="m">FOLLOWING</span><a class="c" id="n-sig" href="https://github.com/Lubbock247?tab=following">–</a></div>
-        <div class="ln"><span class="m">FOLLOWERS</span><a class="c" id="n-seg" href="https://github.com/Lubbock247?tab=followers">–</a></div>
+        <a class="ln link" href="https://github.com/Lubbock247?tab=repositories"><span class="m">REPOS</span><span class="c num" id="n-repos">–</span></a>
+        <a class="ln link" href="#following" data-vista="following"><span class="m">FOLLOWING</span><span class="c num" id="n-sig">–</span></a>
+        <a class="ln link" href="#followers" data-vista="followers"><span class="m">FOLLOWERS</span><span class="c num" id="n-seg">–</span></a>
       </div>
       <nav class="botones">
         <a class="fb on" href="https://github.com/Lubbock247">GITHUB</a>
         <a class="fb" href="/cv/">CV</a>
-        <a class="fb" id="org-link" href="https://github.com/Lubbock247?tab=organizations">GHESTEC</a>
+        <a class="fb" href="https://github.com/Ghestec">GHESTEC</a>
       </nav>
     </div>
   </aside>
@@ -52,11 +52,22 @@
       <a href="https://github.com/Lubbock247?tab=stars"><span class="n m">05</span>STARS<span class="cnt" id="t-stars"></span></a>
       <a class="perfil" id="perfil" href="https://github.com/Lubbock247" title="GitHub profile" aria-label="GitHub profile"><img id="avatar-mini" alt=""></a>
     </nav>
-    <div class="prompt"><span class="r">~/lubbock247 $</span> ls -la repos/ --sort=updated<span class="blink r">█</span></div>
-    <div class="tabla">
-      <div class="row head m"><span></span><span>NAME</span><span>LANG</span><span class="hide-sm">STARS</span><span>UPDATED</span></div>
-      <div id="repos"></div>
-    </div>
+    <section class="vista" id="vista-repos">
+      <div class="prompt"><span class="r">~/lubbock247 $</span> ls -la repos/ --sort=updated<span class="blink r">█</span></div>
+      <div class="tabla">
+        <div class="row head m"><span></span><span>NAME</span><span>LANG</span><span class="hide-sm">STARS</span><span>UPDATED</span></div>
+        <div id="repos"></div>
+      </div>
+    </section>
+    <section class="vista" id="vista-red" hidden>
+      <div class="prompt"><a class="r" href="#">~/lubbock247 $</a> ls -la net/<span id="red-dir"></span>/<span class="blink r">█</span></div>
+      <div class="subtabs">
+        <a href="#followers" data-vista="followers">FOLLOWERS<span class="cnt" id="t-seg"></span></a>
+        <a href="#following" data-vista="following">FOLLOWING<span class="cnt" id="t-sig"></span></a>
+        <a href="#" class="m">← REPOS</a>
+      </div>
+      <div class="gente" id="gente"></div>
+    </section>
     <div class="abajo">
       <section class="act">
         <div class="tag" id="act-titulo">// ACTIVITY.LOG</div>
@@ -83,7 +94,7 @@
   <form method="dialog" id="form-token">
     <div class="tag">// ACCESS_KEY</div>
     <input id="token" type="password" autocomplete="off" spellcheck="false">
-    <div class="err" id="token-err"></div>
+    <div class="err" id="token-err" aria-live="polite"></div>
     <div class="botones">
       <button class="fb on" id="guardar" value="guardar">SAVE</button>
       <button class="fb" id="borrar" value="borrar" type="button">CLEAR</button>
@@ -92,6 +103,6 @@
   </form>
 </dialog>
 
-<script src="js/app.js?v=4"></script>
+<script src="js/app.js?v=5"></script>
 </body>
 </html>
