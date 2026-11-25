@@ -7,7 +7,7 @@
 <meta name="description" content="Antonio Fajardo · Lubbock247">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/estilo.css?v=12">
+<link rel="stylesheet" href="css/estilo.css?v=13">
 </head>
 <body>
 <div class="frame">
@@ -47,7 +47,7 @@
     <nav class="tabs">
       <a href="#" data-vista=""><span class="n m">01</span>OVERVIEW</a>
       <a href="#repositories" data-vista="repositories"><span class="n m">02</span>REPOSITORIES<span class="cnt" id="t-repos"></span></a>
-      <a href="https://github.com/Lubbock247?tab=projects"><span class="n m">03</span>PROJECTS</a>
+      <a href="#projects" data-vista="projects"><span class="n m">03</span>PROJECTS<span class="cnt" id="t-proj"></span></a>
       <a href="https://github.com/Lubbock247?tab=packages"><span class="n m">04</span>PACKAGES</a>
       <a href="https://github.com/Lubbock247?tab=stars"><span class="n m">05</span>STARS<span class="cnt" id="t-stars"></span></a>
       <a class="perfil" id="perfil" href="https://github.com/Lubbock247" title="GitHub profile" aria-label="GitHub profile"><img id="avatar-mini" alt=""></a>
@@ -84,6 +84,23 @@
       </div>
       <div class="resumen m"><span id="c-resumen"></span><span id="c-estado" class="c-estado"></span></div>
       <div class="arbol" id="arbol"></div>
+    </section>
+    <section class="vista" id="vista-proyectos" hidden>
+      <div class="prompt"><a class="r" href="#">~/lubbock247 $</a> gh project list --owner lubbock247<span class="blink r">█</span></div>
+      <div class="demo" id="p-demo" hidden>
+        <span><b>DEMO</b> · SAMPLE PROJECTS, NOT REAL ONES</span>
+        <a class="chip" id="p-salir-demo" href="./#projects">EXIT DEMO</a>
+      </div>
+      <div class="toolbar">
+        <div class="grupo" id="p-filtro">
+          <button class="chip on" type="button" data-filtro="open">OPEN <span class="k" id="pk-open"></span></button>
+          <button class="chip" type="button" data-filtro="closed">CLOSED <span class="k" id="pk-closed"></span></button>
+          <button class="chip" type="button" data-filtro="all">ALL <span class="k" id="pk-all"></span></button>
+        </div>
+        <a class="chip nuevo-p" id="p-nuevo" href="https://github.com/Lubbock247?tab=projects" hidden>+ NEW PROJECT ON GITHUB</a>
+      </div>
+      <div class="resumen m"><span id="p-resumen"></span><span id="p-estado" class="c-estado"></span></div>
+      <div class="proyectos" id="p-lista"></div>
     </section>
     <div class="abajo">
       <section class="act">
@@ -122,8 +139,8 @@
 
 <dialog id="d-escritura">
   <form method="dialog">
-    <div class="tag">// WRITE_KEY · FOLDERS</div>
-    <p class="nota m">Saving folders needs a second key that can only edit this site's repo.
+    <div class="tag">// WRITE_KEY · FOLDERS &amp; PROJECTS</div>
+    <p class="nota m">Saving folders and the public projects list needs a second key that can only edit this site's repo.
       Create it at github.com/settings/personal-access-tokens with
       <span class="c">Only select repositories → Lubbock247.github.io</span> and
       <span class="c">Contents → Read and write</span>.</p>
@@ -137,7 +154,24 @@
   </form>
 </dialog>
 
-<script src="js/app.js?v=12"></script>
-<script src="js/repos.js?v=12"></script>
+<dialog id="d-proyectos">
+  <form method="dialog">
+    <div class="tag">// PROJECTS_KEY</div>
+    <p class="nota m">GitHub only lets <span class="c">classic</span> keys read your own projects.
+      Create one at github.com/settings/tokens/new with <span class="c">only read:project</span> ticked:
+      it can read projects and nothing else.</p>
+    <input id="p-token" type="password" autocomplete="off" spellcheck="false" placeholder="ghp_…">
+    <div class="err" id="p-err" aria-live="polite"></div>
+    <div class="botones">
+      <button class="fb on" id="p-guardar" value="guardar">SAVE</button>
+      <button class="fb" id="p-borrar" value="borrar" type="button">CLEAR</button>
+      <button class="fb" value="cerrar">CLOSE</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/app.js?v=13"></script>
+<script src="js/repos.js?v=13"></script>
+<script src="js/projects.js?v=13"></script>
 </body>
 </html>

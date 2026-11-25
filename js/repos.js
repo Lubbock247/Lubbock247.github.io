@@ -666,9 +666,11 @@ $('w-guardar').addEventListener('click', async e => {
   if (!r.ok) { err.textContent = `this key cannot see ${REPO_SITIO} (error ${r.status})`; return; }
   try { localStorage.setItem(CLAVE_ESCRITURA, t); } catch {}
   err.classList.add('ok');
-  err.textContent = 'key ok · saving folders…';
+  err.textContent = 'key ok · saving…';
   setTimeout(() => { if ($('d-escritura').open) $('d-escritura').close(); }, 800);
-  guardarCarpetas();
+  // The write key is also used by the projects page (js/projects.js) to publish its public list.
+  if (cv.carpetas) guardarCarpetas();
+  if (typeof publicarProyectos === 'function') publicarProyectos();
 });
 $('w-borrar').addEventListener('click', () => {
   try { localStorage.removeItem(CLAVE_ESCRITURA); } catch {}

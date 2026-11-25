@@ -95,6 +95,7 @@ function pintarRepos(repos) {
       <span class="nm m">+${visibles.length - MAX_REPOS} more · open repositories/</span>
     </a>` : '');
   if (typeof alCargarRepos === 'function') alCargarRepos();
+  if (typeof alCargarProyectos === 'function') alCargarProyectos();
 
   const cuenta = {};
   repos.forEach(r => { if (r.language) cuenta[r.language] = (cuenta[r.language] || 0) + 1; });
@@ -323,12 +324,15 @@ function vista() {
   const v = location.hash.slice(1);
   const enRed = v === 'followers' || v === 'following';
   const enCarpetas = v === 'repositories';
-  $('vista-repos').hidden = enRed || enCarpetas;
+  const enProyectos = v === 'projects';
+  $('vista-repos').hidden = enRed || enCarpetas || enProyectos;
   $('vista-red').hidden = !enRed;
   $('vista-carpetas').hidden = !enCarpetas;
+  $('vista-proyectos').hidden = !enProyectos;
   document.querySelectorAll('[data-vista]').forEach(a => a.classList.toggle('on', a.dataset.vista === v));
   if (enRed) pintarRed(v);
   if (enCarpetas && typeof abrirCarpetas === 'function') abrirCarpetas();
+  if (enProyectos && typeof abrirProyectos === 'function') abrirProyectos();
 }
 
 addEventListener('hashchange', vista);

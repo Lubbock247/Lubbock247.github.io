@@ -169,6 +169,36 @@ h1::after{content:attr(data-text);position:absolute;left:2px;top:0;width:100%;co
 .solo-lectura .acciones,.solo-lectura .nueva{display:none}
 .nota{font-size:12px;line-height:1.6;margin-top:10px}
 
+/* Projects page */
+.demo{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 8px 8px 14px;
+  border:1px dashed var(--c);font-size:11px;letter-spacing:.2em;color:var(--c)}
+.demo b{font-weight:600}
+.demo[hidden]{display:none}
+.nuevo-p{margin-left:auto}
+.nuevo-p[hidden]{display:none}
+.proyectos{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.proy{position:relative;display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid #ff5a3c33;background:#0a080899;min-width:0}
+.proy:hover{border-color:var(--r);background:#ff5a3c0f;box-shadow:inset 3px 0 0 var(--r)}
+.proy.cerrado{opacity:.65}
+.ptop{display:flex;align-items:center;gap:8px;min-width:0;font-size:12px}
+.ptitulo{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:20px;letter-spacing:.04em;text-transform:uppercase;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ptop .lock,.ptop .fork{margin-left:0}
+.pir{margin-left:auto;color:var(--m)}
+.proy:hover .pir{color:var(--r)}
+.pdesc{font-size:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pbar{display:flex;height:8px;background:#1e1210;gap:2px}
+.pbar i{display:block;height:100%}
+.s-done{background:var(--c)}
+.s-doing{background:var(--r)}
+.s-todo{background:#5a1f15}
+.s-none{background:#3a2a26}
+.pley{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:10px;letter-spacing:.15em}
+.pley span{display:inline-flex;align-items:center;gap:6px}
+.pley i{width:8px;height:8px;display:inline-block}
+.pfoot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:10px;border-top:1px solid #ff5a3c1a;
+  font-size:10px;letter-spacing:.15em}
+
 .blink{animation:b 1s steps(1) infinite}@keyframes b{50%{opacity:0}}
 .row{display:grid;grid-template-columns:28px minmax(0,1fr) 130px 70px 90px;padding:9px 6px;border-bottom:1px solid #ff5a3c1a;font-size:14px;align-items:center}
 .row.head{font-size:11px;letter-spacing:.15em}
