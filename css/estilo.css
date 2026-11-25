@@ -204,8 +204,8 @@ h1::after{content:attr(data-text);position:absolute;left:2px;top:0;width:100%;co
 /* New repository window */
 .chip[hidden]{display:none}
 .nuevo-r{margin-left:auto}
-#d-nuevo{width:min(600px,92vw)}
-#d-nuevo form[hidden],#d-nuevo .term[hidden],#d-nuevo [hidden]{display:none}
+.d-nuevo{width:min(600px,92vw)}
+.d-nuevo [hidden]{display:none}
 .campo{display:grid;grid-template-columns:112px minmax(0,1fr);align-items:center;gap:12px;margin-top:14px;font-size:11px;letter-spacing:.15em}
 .campo input{margin-top:0}
 .campo .chip{padding:6px 10px;font-size:10px}
@@ -215,7 +215,7 @@ h1::after{content:attr(data-text);position:absolute;left:2px;top:0;width:100%;co
 .nr-nombre > span{white-space:nowrap;flex:none}
 dialog .nr-nombre input{border:0;background:none;margin:0;padding:9px 10px 9px 0}
 .nr-aviso{margin:6px 0 0 124px;min-height:15px;font-size:11px;letter-spacing:.05em}
-#d-nuevo .botones{margin-top:22px}
+.d-nuevo .botones{margin-top:22px}
 .fb:disabled{opacity:.35;pointer-events:none}
 .term{position:relative;min-height:280px;overflow:hidden}
 .term.pinta{animation:pinta .55s steps(9) both}

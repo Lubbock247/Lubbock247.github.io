@@ -274,7 +274,7 @@ $('p-guardar').addEventListener('click', async e => {
   }
   let lista;
   try { lista = await consultarProyectos(t); } catch (x) {
-    err.textContent = x.message === 'permiso' ? 'this key cannot read projects: tick read:project when creating it'
+    err.textContent = x.message === 'permiso' ? 'this key cannot reach projects: tick project (or read:project) when creating it'
       : x.message === 'rechazada' ? 'GitHub rejects this key: it was deleted, expired or copied incomplete'
         : 'could not check the key · ' + x.message;
     return;

@@ -7,7 +7,7 @@
 <meta name="description" content="Antonio Fajardo · Lubbock247">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/estilo.css?v=14">
+<link rel="stylesheet" href="css/estilo.css?v=15">
 </head>
 <body>
 <div class="frame">
@@ -98,7 +98,7 @@
           <button class="chip" type="button" data-filtro="closed">CLOSED <span class="k" id="pk-closed"></span></button>
           <button class="chip" type="button" data-filtro="all">ALL <span class="k" id="pk-all"></span></button>
         </div>
-        <a class="chip nuevo-p" id="p-nuevo" href="https://github.com/Lubbock247?tab=projects" hidden>+ NEW PROJECT ON GITHUB</a>
+        <button class="chip on nuevo-p" type="button" id="p-nuevo" hidden>+ NEW PROJECT</button>
       </div>
       <div class="resumen m"><span id="p-estado" class="c-estado"></span></div>
       <div class="proyectos" id="p-lista"></div>
@@ -158,9 +158,10 @@
 <dialog id="d-proyectos">
   <form method="dialog">
     <div class="tag">// PROJECTS_KEY</div>
-    <p class="nota m">GitHub only lets <span class="c">classic</span> keys read your own projects.
-      Create one at github.com/settings/tokens/new with <span class="c">only read:project</span> ticked:
-      it can read projects and nothing else.</p>
+    <p class="nota m">GitHub only lets <span class="c">classic</span> keys reach your own projects.
+      Create one at github.com/settings/tokens/new and tick only <span class="c">project</span>
+      (to see and create them) or only <span class="c">read:project</span> (just to see them).
+      It cannot touch your repos.</p>
     <input id="p-token" type="password" autocomplete="off" spellcheck="false" placeholder="ghp_…">
     <div class="err" id="p-err" aria-live="polite"></div>
     <div class="botones">
@@ -171,7 +172,7 @@
   </form>
 </dialog>
 
-<dialog id="d-nuevo">
+<dialog id="d-nuevo" class="d-nuevo">
   <form method="dialog" id="nr-formulario">
     <div class="tag">// NEW_REPOSITORY</div>
     <label class="campo"><span class="m">NAME</span>
@@ -200,9 +201,34 @@
   </div>
 </dialog>
 
-<script src="js/app.js?v=14"></script>
-<script src="js/repos.js?v=14"></script>
-<script src="js/projects.js?v=14"></script>
-<script src="js/nuevo-repo.js?v=14"></script>
+<dialog id="d-nuevo-p" class="d-nuevo">
+  <form method="dialog" id="np-formulario">
+    <div class="tag">// NEW_PROJECT</div>
+    <label class="campo"><span class="m">TITLE</span><input id="np-titulo" autocomplete="off" maxlength="100" placeholder="My roadmap"></label>
+    <div class="nr-aviso m" id="np-aviso" aria-live="polite"></div>
+    <label class="campo"><span class="m">DESCRIPTION</span><input id="np-desc" autocomplete="off" maxlength="200" placeholder="optional"></label>
+    <div class="campo"><span class="m">VISIBILITY</span><div class="grupo" id="np-vis"></div></div>
+    <div class="campo"><span class="m">LINK REPO</span><div class="grupo envuelve" id="np-repo"></div></div>
+    <div class="botones">
+      <button class="fb on" id="np-crear" value="crear">CREATE</button>
+      <button class="fb" type="button" id="np-cancelar">CANCEL</button>
+    </div>
+  </form>
+  <div class="term" id="np-term" hidden>
+    <div class="tag">// NEW_PROJECT</div>
+    <div class="lineas-term" id="np-lineas"></div>
+    <div class="botones" id="np-fin" hidden>
+      <a class="fb on" id="np-abrir" href="#" target="_blank" rel="noopener">OPEN ON GITHUB</a>
+      <button class="fb" type="button" id="np-volver" hidden>BACK</button>
+      <button class="fb" type="button" id="np-listo">DONE</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="js/app.js?v=15"></script>
+<script src="js/repos.js?v=15"></script>
+<script src="js/projects.js?v=15"></script>
+<script src="js/nuevo-repo.js?v=15"></script>
+<script src="js/nuevo-proyecto.js?v=15"></script>
 </body>
 </html>

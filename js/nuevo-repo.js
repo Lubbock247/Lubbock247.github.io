@@ -59,10 +59,11 @@ function abrirNuevoRepo() {
 
 // ---- The terminal ----
 
-async function escribirLinea(texto, clase = '') {
+// Shared with js/nuevo-proyecto.js: "donde" is the terminal's lines box.
+async function escribirLinea(texto, clase = '', donde = $('nr-lineas')) {
   const linea = document.createElement('div');
   linea.className = clase;
-  $('nr-lineas').appendChild(linea);
+  donde.appendChild(linea);
   for (let i = 0; i < texto.length; i += 2) {
     linea.textContent = texto.slice(0, i + 2);
     await dormir(10);
@@ -71,8 +72,8 @@ async function escribirLinea(texto, clase = '') {
 }
 
 // One step: "> text ......" with dots growing until the work finishes, then ok or fail.
-async function paso(texto, trabajo) {
-  const linea = await escribirLinea('> ' + texto + ' ');
+async function paso(texto, trabajo, donde = $('nr-lineas')) {
+  const linea = await escribirLinea('> ' + texto + ' ', '', donde);
   const puntos = document.createElement('span');
   puntos.className = 'm';
   linea.appendChild(puntos);
