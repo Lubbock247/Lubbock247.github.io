@@ -1,6 +1,6 @@
 const USUARIO = 'Lubbock247';
 const CLAVE_TOKEN = 'lubbock-token';
-const MAX_REPOS = 8;
+const MAX_REPOS = 50;
 
 const COLORES = {
   JavaScript: '#e8c547', TypeScript: '#3178c6', HTML: '#e06a4f', CSS: '#663399', SCSS: '#c6538c',
@@ -63,18 +63,20 @@ function pintarPerfil(u) {
     $('nombre').innerHTML = corto.map(esc).join('<br>');
     $('nombre').dataset.text = corto.join('\n');
   }
-  const repos = (u.public_repos || 0) + (u.total_private_repos || 0);
-  $('n-repos').textContent = repos;
-  $('t-repos').textContent = repos;
+  $('avatar-mini').src = u.avatar_url;
+  $('perfil').href = u.html_url;
   $('n-sig').textContent = u.following;
   $('n-seg').textContent = u.followers;
 }
 
 function pintarRepos(repos) {
-  const lista = repos
+  // The count only includes the repos the list can show (not this site's own repo, not archived ones).
+  const visibles = repos
     .filter(r => !r.archived && r.name.toLowerCase() !== (USUARIO + '.github.io').toLowerCase())
-    .sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at))
-    .slice(0, MAX_REPOS);
+    .sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
+  const lista = visibles.slice(0, MAX_REPOS);
+  $('n-repos').textContent = visibles.length;
+  $('t-repos').textContent = visibles.length;
 
   $('repos').innerHTML = lista.map(r => `
     <a class="row" href="${esc(r.html_url)}">
@@ -102,16 +104,28 @@ function nivel(n, max) {
   return f > .75 ? '#3ee6d8' : f > .5 ? '#ff5a3c' : f > .25 ? '#b0402c' : '#5a1f15';
 }
 
+// The calendar fills the width of its area; the row height follows the column width, within limits.
+function ajustarCal() {
+  const cal = $('cal');
+  const cols = +cal.dataset.cols || 13;
+  const ancho = (cal.clientWidth - 4 - 3 * (cols - 1)) / cols;
+  cal.style.setProperty('--alto', Math.round(Math.max(10, Math.min(ancho, 28))) + 'px');
+}
+
 // Draws the calendar like GitHub's: one column per week (Sunday on top), month names above.
-function pintarCeldas(dias, celda) {
-  $('cal').style.setProperty('--cell', celda + 'px');
+function pintarCeldas(dias) {
   const max = Math.max(1, ...dias.map(d => d.n));
   const hueco = dias.length ? aFecha(dias[0].fecha).getDay() : 0;
   const celdas = Array(hueco).fill('<span class="vacia"></span>');
   dias.forEach(d => celdas.push(`<span data-n="${d.n}" data-fecha="${d.fecha}" style="background:${nivel(d.n, max)}"></span>`));
   $('cells').innerHTML = celdas.join('');
 
-  const etiquetas = Array(Math.ceil(celdas.length / 7)).fill('');
+  const cols = Math.ceil(celdas.length / 7);
+  $('cal').dataset.cols = cols;
+  $('cal').style.setProperty('--cols', cols);
+  ajustarCal();
+
+  const etiquetas = Array(cols).fill('');
   const marcas = [];
   dias.forEach((d, i) => {
     const f = aFecha(d.fecha);
@@ -153,7 +167,7 @@ async function actividadCompleta() {
   const cal = d.user.contributionsCollection.contributionCalendar;
   $('act-titulo').textContent = '// ACTIVITY.LOG — 365D';
   $('act-total').textContent = `${cal.totalContributions} CONTRIB · LAST YEAR`;
-  pintarCeldas(cal.weeks.flatMap(w => w.contributionDays).map(x => ({ fecha: x.date, n: x.contributionCount })), 13);
+  pintarCeldas(cal.weeks.flatMap(w => w.contributionDays).map(x => ({ fecha: x.date, n: x.contributionCount })));
 }
 
 async function actividadPublica() {
@@ -175,7 +189,7 @@ async function actividadPublica() {
   }
   $('act-titulo').textContent = '// ACTIVITY.LOG — 90D';
   $('act-total').textContent = `${total} CONTRIB · LAST 90D`;
-  pintarCeldas(dias, 20);
+  pintarCeldas(dias);
 }
 
 async function cargar() {
@@ -212,6 +226,7 @@ $('cells').addEventListener('pointerover', e => {
 $('cells').addEventListener('pointerleave', ocultarTip);
 addEventListener('scroll', ocultarTip, true);
 addEventListener('resize', ocultarTip);
+new ResizeObserver(ajustarCal).observe($('cal'));
 
 $('id-btn').addEventListener('click', () => {
   $('token').value = token();
