@@ -3,19 +3,24 @@
 // They are saved in data/folders.json in this site's repo, so every visitor sees them.
 // That file only ever lists public repos. Which folder each private repo goes in
 // is kept in the owner's browser, so private names never reach the public file.
+// Only the owner (with the access key) can change folders, and every change saves by itself.
 
 const REPO_SITIO = `${USUARIO}/${USUARIO}.github.io`;
 const RUTA_CARPETAS = 'data/folders.json';
 const CLAVE_ESCRITURA = 'lubbock-write';
 const CLAVE_PRIVADOS = 'lubbock-private-folders';
 const PALETA = ['#ff5a3c', '#e06a4f', '#ff9a3c', '#e8c547', '#89e051', '#3ee6d8', '#3178c6', '#a97bff', '#c6538c', '#8a7671'];
+const ESPERA_GUARDADO = 1200;
 
 const cv = {
   carpetas: null, cargadoComoDueno: null, cargando: null,
   sinCarpetaAbierta: true, cerradas: new Set(),
   tipo: 'all', modo: 'carpetas', texto: '',
-  editando: null, colorDe: null, moverDe: null, arrastrado: null,
-  cambios: false, guardando: false, mensaje: ''
+  editando: null, colorDe: null, moverDe: null,
+  arrastrado: null, carpetaArrastrada: null,
+  // Autosave
+  publicadoTexto: null, sha: null, temporizador: null,
+  guardando: false, pendiente: false, estado: '', mensaje: ''
 };
 
 const esDueno = () => !!token();
@@ -33,14 +38,23 @@ const deBase64 = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replac
 const colorValido = c => /^#[0-9a-f]{6}$/i.test(c) ? c : PALETA[0];
 const limpiarNombre = n => String(n).trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_.-]/g, '').slice(0, 24);
 
+// What goes in the public file: folders in order, each with only its public repos.
+function textoPublico(carpetas, esPublico) {
+  return JSON.stringify({
+    folders: carpetas.map(c => ({ id: c.id, name: c.nombre, color: c.color, repos: c.repos.filter(esPublico) }))
+  }, null, 2) + '\n';
+}
+
 async function cargarCarpetas() {
   const dueno = esDueno();
   let datos = null;
+  cv.sha = null;
   if (dueno) {
     // The owner reads the file straight from the repo, so a save shows up before the site redeploys.
     try {
       const j = await api(`/repos/${REPO_SITIO}/contents/${RUTA_CARPETAS}?ref=main`);
       datos = JSON.parse(deBase64(j.content));
+      cv.sha = j.sha;
     } catch {}
   }
   if (!datos) {
@@ -55,6 +69,8 @@ async function cargarCarpetas() {
     color: colorValido(f.color),
     repos: Array.isArray(f.repos) ? f.repos.map(String) : []
   }));
+  // The file as it is now (it only has public repos), to know later whether a change needs publishing.
+  cv.publicadoTexto = textoPublico(cv.carpetas, () => true);
   if (dueno) {
     for (const [repo, id] of Object.entries(leerLocal(CLAVE_PRIVADOS, {}))) {
       const c = cv.carpetas.find(x => x.id === id);
@@ -62,7 +78,6 @@ async function cargarCarpetas() {
     }
   }
   cv.cargadoComoDueno = dueno;
-  cv.cambios = false;
 }
 
 function asegurarCarpetas() {
@@ -116,13 +131,16 @@ function fila(r, ultima, plano) {
     </div>`;
 }
 
-function bloque(c, lista) {
+function bloque(c, lista, pos, total) {
   const id = c ? c.id : '';
   const abierta = c ? !cv.cerradas.has(c.id) : cv.sinCarpetaAbierta;
-  const nombre = cv.editando === id && c
+  const editando = c && cv.editando === id;
+  const nombre = editando
     ? `<input id="renombrar" value="${esc(c.nombre)}" maxlength="24" aria-label="folder name">`
     : '/' + esc(c ? c.nombre : 'unsorted');
   const acciones = c ? `<span class="acciones">
+      <button type="button" class="acc" data-acc="subir" title="move folder up"${pos === 0 ? ' disabled' : ''}>↑</button>
+      <button type="button" class="acc" data-acc="bajar" title="move folder down"${pos === total - 1 ? ' disabled' : ''}>↓</button>
       <button type="button" class="acc" data-acc="renombrar">RENAME</button>
       <button type="button" class="acc" data-acc="color">COLOR</button>
       <button type="button" class="acc" data-acc="borrar">DELETE</button></span>` : '';
@@ -132,7 +150,8 @@ function bloque(c, lista) {
     </div>` : '';
   return `
     <section class="carpeta${abierta ? '' : ' cerrada'}" data-carpeta="${esc(id)}">
-      <div class="chead">
+      <div class="chead"${c && esDueno() && !editando ? ' draggable="true"' : ''}>
+        ${c ? '<span class="asa asa-c" title="drag to reorder">⋮⋮</span>' : ''}
         <span class="flecha">▾</span>
         <span class="sw" style="${c ? `background:${c.color}` : 'border:1px dashed #8a7671'}"></span>
         <span class="cnombre">${nombre}</span>
@@ -150,14 +169,19 @@ function bloque(c, lista) {
 function pintarEstado() {
   const e = $('c-estado');
   if (!esDueno()) { e.innerHTML = ''; return; }
-  if (cv.guardando) { e.innerHTML = '<span class="c">SAVING…</span>'; return; }
-  if (cv.cambios) {
-    e.innerHTML = `<span class="r">● UNSAVED CHANGES</span>
-      <button type="button" class="chip on" id="c-guardar">SAVE</button>
-      <button type="button" class="chip" id="c-descartar">DISCARD</button>`;
+  const textos = {
+    esperando: '<span class="m">● CHANGES · SAVING SOON</span>',
+    guardando: '<span class="c">SAVING…</span>',
+    guardado: '<span class="c">✓ SAVED · LIVE FOR VISITORS IN ~1 MIN</span>',
+    local: '<span class="c">✓ SAVED</span>'
+  };
+  if (textos[cv.estado]) { e.innerHTML = textos[cv.estado]; return; }
+  if (cv.estado === 'error') {
+    e.innerHTML = `<span class="r">${esc(cv.mensaje)}</span>
+      <button type="button" class="chip on" id="c-reintentar">${claveEscritura() ? 'RETRY' : 'ADD WRITE KEY'}</button>`;
     return;
   }
-  e.innerHTML = cv.mensaje ? `<span class="${cv.mensaje.startsWith('!') ? 'r' : 'c'}">${esc(cv.mensaje)}</span>` : '';
+  e.innerHTML = '';
 }
 
 function pintarCarpetas() {
@@ -192,11 +216,11 @@ function pintarCarpetas() {
     return;
   }
   const html = [];
-  for (const c of cv.carpetas) {
+  cv.carpetas.forEach((c, i) => {
     const dentro = lista.filter(r => c.repos.includes(r.name));
     // Visitors don't see folders that have nothing public in them.
-    if (dentro.length || (dueno && !cv.texto && cv.tipo === 'all')) html.push(bloque(c, dentro));
-  }
+    if (dentro.length || (dueno && !cv.texto && cv.tipo === 'all')) html.push(bloque(c, dentro, i, cv.carpetas.length));
+  });
   const sueltos = lista.filter(r => !carpetaDe(r.name));
   if (sueltos.length || (dueno && !cv.texto)) html.push(bloque(null, sueltos));
   if (dueno) html.push('<button type="button" class="nueva" id="nueva">+ NEW FOLDER</button>');
@@ -205,10 +229,101 @@ function pintarCarpetas() {
   if (inp) { inp.focus(); inp.select(); }
 }
 
+// ---- Saving ----
+
+// Every change keeps the private placements in this browser right away,
+// and publishes the public file a moment later (several quick changes become one save).
 function marcarCambio() {
-  cv.cambios = true;
-  cv.mensaje = '';
+  const privados = new Set(reposLista.filter(r => r.private).map(r => r.name));
+  const mapa = {};
+  cv.carpetas.forEach(c => c.repos.forEach(n => { if (privados.has(n)) mapa[n] = c.id; }));
+  escribirLocal(CLAVE_PRIVADOS, mapa);
+  cv.estado = 'esperando';
+  clearTimeout(cv.temporizador);
+  cv.temporizador = setTimeout(guardarCarpetas, ESPERA_GUARDADO);
+  pintarEstado();
 }
+
+function error(mensaje) {
+  cv.estado = 'error';
+  cv.mensaje = mensaje;
+}
+
+async function guardarCarpetas() {
+  clearTimeout(cv.temporizador);
+  // Don't publish while a folder name is still being typed.
+  if (cv.editando !== null) { cv.temporizador = setTimeout(guardarCarpetas, ESPERA_GUARDADO); return; }
+  if (cv.guardando) { cv.pendiente = true; return; }
+  const publicos = new Set(reposLista.filter(r => !r.private).map(r => r.name));
+  const texto = textoPublico(cv.carpetas, n => publicos.has(n));
+  // Only private repos moved: nothing public changed, so there is nothing to publish.
+  if (texto === cv.publicadoTexto) { cv.estado = 'local'; pintarEstado(); return; }
+
+  const clave = claveEscritura();
+  if (!clave) {
+    error('! NOT PUBLISHED · A WRITE KEY IS NEEDED');
+    pintarEstado();
+    abrirClaveEscritura();
+    return;
+  }
+  cv.guardando = true;
+  cv.estado = 'guardando';
+  pintarEstado();
+  const h = { Authorization: 'Bearer ' + clave, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' };
+  const url = `https://api.github.com/repos/${REPO_SITIO}/contents/${RUTA_CARPETAS}`;
+  const leerSha = async () => {
+    const g = await fetch(url + '?ref=main', { headers: h });
+    if (g.ok) return (await g.json()).sha;
+    if (g.status === 401) throw new Error('rechazada');
+    if (g.status === 404) return null;
+    throw new Error('permiso');
+  };
+  const subir = sha => fetch(url, {
+    method: 'PUT',
+    headers: h,
+    body: JSON.stringify({ message: 'Update repo folders', content: aBase64(texto), branch: 'main', ...(sha ? { sha } : {}) })
+  });
+  try {
+    if (!cv.sha) cv.sha = await leerSha();
+    let r = await subir(cv.sha);
+    if (r.status === 409 || r.status === 422) {
+      // The file changed since it was read (another tab, or a save still landing): read it again and retry once.
+      cv.sha = await leerSha();
+      r = await subir(cv.sha);
+    }
+    if (r.status === 401) throw new Error('rechazada');
+    if (r.status === 403 || r.status === 404) throw new Error('permiso');
+    if (!r.ok) throw new Error(String(r.status));
+    cv.sha = (await r.json()).content.sha;
+    cv.publicadoTexto = texto;
+    cv.estado = 'guardado';
+  } catch (e) {
+    cv.sha = null;
+    const m = e.message;
+    if (m === 'rechazada') {
+      try { localStorage.removeItem(CLAVE_ESCRITURA); } catch {}
+      error('! WRITE KEY REJECTED');
+    } else if (m === 'permiso') {
+      error('! THE WRITE KEY CANNOT EDIT THIS REPO (CONTENTS → READ AND WRITE)');
+    } else {
+      error('! COULD NOT SAVE · ' + m);
+    }
+  }
+  cv.guardando = false;
+  pintarEstado();
+  if (cv.pendiente) { cv.pendiente = false; guardarCarpetas(); }
+}
+
+function abrirClaveEscritura() {
+  if ($('d-escritura').open) return;
+  $('w-token').value = '';
+  $('w-token').placeholder = claveEscritura() ? 'a key is saved · paste a new one to replace it' : 'github_pat_…';
+  $('w-err').textContent = '';
+  $('w-err').classList.remove('ok');
+  $('d-escritura').showModal();
+}
+
+// ---- Changes ----
 
 function moverRepo(repo, idDestino) {
   cv.carpetas.forEach(c => { c.repos = c.repos.filter(n => n !== repo); });
@@ -217,79 +332,30 @@ function moverRepo(repo, idDestino) {
   marcarCambio();
 }
 
+function moverCarpeta(id, nuevaPos) {
+  const i = cv.carpetas.findIndex(c => c.id === id);
+  if (i < 0) return;
+  const [c] = cv.carpetas.splice(i, 1);
+  cv.carpetas.splice(Math.max(0, Math.min(nuevaPos, cv.carpetas.length)), 0, c);
+  marcarCambio();
+}
+
 function guardarNombre() {
   const inp = $('renombrar');
   const c = cv.carpetas.find(x => x.id === cv.editando);
+  cv.editando = null;
   if (inp && c) {
     const nuevo = limpiarNombre(inp.value) || c.nombre;
     if (nuevo !== c.nombre) { c.nombre = nuevo; marcarCambio(); }
   }
-  cv.editando = null;
   pintarCarpetas();
 }
 
-async function guardarCarpetas() {
-  const clave = claveEscritura();
-  if (!clave) { abrirClaveEscritura(); return; }
-  cv.guardando = true;
-  pintarEstado();
-
-  const privados = new Set(reposLista.filter(r => r.private).map(r => r.name));
-  const publicos = new Set(reposLista.filter(r => !r.private).map(r => r.name));
-  const archivo = {
-    folders: cv.carpetas.map(c => ({ id: c.id, name: c.nombre, color: c.color, repos: c.repos.filter(n => publicos.has(n)) }))
-  };
-  const mapaPrivados = {};
-  cv.carpetas.forEach(c => c.repos.forEach(n => { if (privados.has(n)) mapaPrivados[n] = c.id; }));
-
-  const h = { Authorization: 'Bearer ' + clave, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' };
-  const url = `https://api.github.com/repos/${REPO_SITIO}/contents/${RUTA_CARPETAS}`;
-  try {
-    let sha;
-    const g = await fetch(url + '?ref=main', { headers: h });
-    if (g.ok) sha = (await g.json()).sha;
-    else if (g.status === 401) throw new Error('rechazada');
-    else if (g.status !== 404) throw new Error('permiso');
-    const r = await fetch(url, {
-      method: 'PUT',
-      headers: h,
-      body: JSON.stringify({
-        message: 'Update repo folders',
-        content: aBase64(JSON.stringify(archivo, null, 2) + '\n'),
-        branch: 'main',
-        ...(sha ? { sha } : {})
-      })
-    });
-    if (r.status === 401) throw new Error('rechazada');
-    if (r.status === 403 || r.status === 404) throw new Error('permiso');
-    if (r.status === 409) throw new Error('conflicto');
-    if (!r.ok) throw new Error(String(r.status));
-    escribirLocal(CLAVE_PRIVADOS, mapaPrivados);
-    cv.cambios = false;
-    cv.mensaje = '✓ SAVED · LIVE FOR VISITORS IN ~1 MIN';
-  } catch (e) {
-    const m = e.message;
-    if (m === 'rechazada') {
-      try { localStorage.removeItem(CLAVE_ESCRITURA); } catch {}
-      cv.mensaje = '! WRITE KEY REJECTED · SAVE AGAIN TO ENTER A NEW ONE';
-    } else if (m === 'permiso') {
-      cv.mensaje = '! THE WRITE KEY CANNOT EDIT THIS REPO (CONTENTS → READ AND WRITE)';
-    } else if (m === 'conflicto') {
-      cv.mensaje = '! THE FILE CHANGED ELSEWHERE · DISCARD AND TRY AGAIN';
-    } else {
-      cv.mensaje = '! COULD NOT SAVE · ' + m;
-    }
-  }
-  cv.guardando = false;
-  pintarEstado();
-}
-
-function abrirClaveEscritura() {
-  $('w-token').value = '';
-  $('w-token').placeholder = claveEscritura() ? 'a key is saved · paste a new one to replace it' : 'github_pat_…';
-  $('w-err').textContent = '';
-  $('w-err').classList.remove('ok');
-  $('d-escritura').showModal();
+function plegar(id) {
+  if (id === '') cv.sinCarpetaAbierta = !cv.sinCarpetaAbierta;
+  else if (cv.cerradas.has(id)) cv.cerradas.delete(id);
+  else cv.cerradas.add(id);
+  pintarCarpetas();
 }
 
 // ---- Events ----
@@ -305,8 +371,8 @@ elegirChip('c-modo', 'modo');
 $('c-buscar').addEventListener('input', e => { cv.texto = e.target.value; pintarCarpetas(); });
 
 $('c-estado').addEventListener('click', e => {
-  if (e.target.id === 'c-guardar') guardarCarpetas();
-  if (e.target.id === 'c-descartar') { cv.carpetas = null; cv.mensaje = ''; abrirCarpetas(); }
+  if (e.target.id !== 'c-reintentar') return;
+  if (claveEscritura()) guardarCarpetas(); else abrirClaveEscritura();
 });
 
 $('arbol').addEventListener('click', e => {
@@ -316,7 +382,12 @@ $('arbol').addEventListener('click', e => {
     return;
   }
   if (e.target.id === 'nueva') {
-    const c = { id: 'f' + Date.now().toString(36), nombre: 'new-folder', color: PALETA.find(p => !cv.carpetas.some(x => x.color === p)) || PALETA[0], repos: [] };
+    const c = {
+      id: 'f' + Date.now().toString(36),
+      nombre: 'new-folder',
+      color: PALETA.find(p => !cv.carpetas.some(x => x.color === p)) || PALETA[0],
+      repos: []
+    };
     cv.carpetas.push(c);
     cv.editando = c.id;
     marcarCambio();
@@ -330,7 +401,7 @@ $('arbol').addEventListener('click', e => {
     pintarCarpetas();
     return;
   }
-  const asa = e.target.closest('.asa');
+  const asa = e.target.closest('.rrow .asa');
   if (asa) {
     const repo = asa.closest('.rrow').dataset.repo;
     cv.moverDe = cv.moverDe === repo ? null : repo;
@@ -347,6 +418,9 @@ $('arbol').addEventListener('click', e => {
   if (e.target.closest('.paleta')) return;
   const acc = e.target.closest('.acc');
   if (acc && c) {
+    const pos = cv.carpetas.indexOf(c);
+    if (acc.dataset.acc === 'subir') moverCarpeta(id, pos - 1);
+    if (acc.dataset.acc === 'bajar') moverCarpeta(id, pos + 1);
     if (acc.dataset.acc === 'renombrar') cv.editando = id;
     if (acc.dataset.acc === 'color') { cv.colorDe = cv.colorDe === id ? null : id; cv.moverDe = null; }
     if (acc.dataset.acc === 'borrar') { cv.carpetas = cv.carpetas.filter(x => x.id !== id); marcarCambio(); }
@@ -357,19 +431,12 @@ $('arbol').addEventListener('click', e => {
   if (e.target.closest('.chead')) plegar(id);
 });
 
-function plegar(id) {
-  if (id === '') cv.sinCarpetaAbierta = !cv.sinCarpetaAbierta;
-  else if (cv.cerradas.has(id)) cv.cerradas.delete(id);
-  else cv.cerradas.add(id);
-  pintarCarpetas();
-}
-
 $('arbol').addEventListener('keydown', e => {
   if (e.target.id !== 'renombrar') return;
   if (e.key === 'Enter') guardarNombre();
   if (e.key === 'Escape') { cv.editando = null; pintarCarpetas(); }
 });
-$('arbol').addEventListener('focusout', e => { if (e.target.id === 'renombrar') guardarNombre(); });
+$('arbol').addEventListener('focusout', e => { if (e.target.id === 'renombrar' && cv.editando !== null) guardarNombre(); });
 
 // Custom colour: preview while choosing, close the picker when done.
 $('arbol').addEventListener('input', e => {
@@ -379,7 +446,6 @@ $('arbol').addEventListener('input', e => {
   c.color = e.target.value;
   sec.querySelector('.chead .sw').style.background = c.color;
   marcarCambio();
-  pintarEstado();
 });
 $('arbol').addEventListener('change', e => {
   if (e.target.type === 'color') { cv.colorDe = null; pintarCarpetas(); }
@@ -388,42 +454,78 @@ $('arbol').addEventListener('change', e => {
 // Clicking elsewhere or pressing Esc closes the colour picker and the move menu.
 document.addEventListener('click', e => {
   if (cv.colorDe !== null && !e.target.closest('.paleta') && !e.target.closest('[data-acc="color"]')) { cv.colorDe = null; pintarCarpetas(); }
-  if (cv.moverDe !== null && !e.target.closest('.mover') && !e.target.closest('.asa')) { cv.moverDe = null; pintarCarpetas(); }
+  if (cv.moverDe !== null && !e.target.closest('.mover') && !e.target.closest('.rrow .asa')) { cv.moverDe = null; pintarCarpetas(); }
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && (cv.colorDe !== null || cv.moverDe !== null)) { cv.colorDe = cv.moverDe = null; pintarCarpetas(); }
 });
 
-// Drag a repo onto a folder, or onto /unsorted to take it out.
+// Drag and drop: a repo onto a folder (or /unsorted), or a folder above/below another to reorder.
+const limpiarMarcas = () => document.querySelectorAll('.arrastrando, .drop, .antes, .despues')
+  .forEach(x => x.classList.remove('arrastrando', 'drop', 'antes', 'despues'));
+
 $('arbol').addEventListener('dragstart', e => {
+  if (!esDueno()) return;
+  const cab = e.target.closest('.chead[draggable="true"]');
+  if (cab) {
+    cv.carpetaArrastrada = cab.closest('.carpeta').dataset.carpeta;
+    cab.closest('.carpeta').classList.add('arrastrando');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', cv.carpetaArrastrada);
+    return;
+  }
   const f = e.target.closest('.rrow');
-  if (!f || !esDueno()) return;
+  if (!f) return;
   cv.arrastrado = f.dataset.repo;
   f.classList.add('arrastrando');
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', cv.arrastrado);
 });
 $('arbol').addEventListener('dragend', () => {
-  cv.arrastrado = null;
-  document.querySelectorAll('.arrastrando, .drop').forEach(x => x.classList.remove('arrastrando', 'drop'));
+  cv.arrastrado = cv.carpetaArrastrada = null;
+  limpiarMarcas();
 });
 $('arbol').addEventListener('dragover', e => {
   const sec = e.target.closest('.carpeta[data-carpeta]');
-  if (!sec || !cv.arrastrado) return;
+  if (!sec) return;
+  if (cv.carpetaArrastrada) {
+    e.preventDefault();
+    document.querySelectorAll('.antes, .despues').forEach(x => x.classList.remove('antes', 'despues'));
+    if (sec.dataset.carpeta === cv.carpetaArrastrada) return;
+    if (sec.dataset.carpeta === '') { sec.classList.add('antes'); return; }
+    const r = sec.getBoundingClientRect();
+    sec.classList.add(e.clientY < r.top + r.height / 2 ? 'antes' : 'despues');
+    return;
+  }
+  if (!cv.arrastrado) return;
   e.preventDefault();
   document.querySelectorAll('.drop').forEach(x => { if (x !== sec) x.classList.remove('drop'); });
   sec.classList.add('drop');
 });
 $('arbol').addEventListener('drop', e => {
   const sec = e.target.closest('.carpeta[data-carpeta]');
-  if (!sec || !cv.arrastrado) return;
+  if (!sec) return;
   e.preventDefault();
-  moverRepo(cv.arrastrado, sec.dataset.carpeta);
-  cv.arrastrado = null;
+  if (cv.carpetaArrastrada) {
+    const id = cv.carpetaArrastrada;
+    const destino = sec.dataset.carpeta;
+    if (destino !== id) {
+      const sinElla = cv.carpetas.filter(c => c.id !== id);
+      let pos = destino === '' ? sinElla.length : sinElla.findIndex(c => c.id === destino);
+      if (destino !== '' && sec.classList.contains('despues')) pos += 1;
+      moverCarpeta(id, pos);
+    }
+  } else if (cv.arrastrado) {
+    moverRepo(cv.arrastrado, sec.dataset.carpeta);
+  }
+  cv.arrastrado = cv.carpetaArrastrada = null;
+  limpiarMarcas();
   pintarCarpetas();
 });
 
-addEventListener('beforeunload', e => { if (cv.cambios) e.preventDefault(); });
+addEventListener('beforeunload', e => {
+  if (cv.estado === 'esperando' || cv.guardando) e.preventDefault();
+});
 
 // Write key dialog
 $('w-guardar').addEventListener('click', async e => {

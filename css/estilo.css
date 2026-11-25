@@ -93,6 +93,14 @@ h1::after{content:attr(data-text);position:absolute;left:2px;top:0;width:100%;co
 .arbol{display:flex;flex-direction:column;gap:12px}
 .carpeta{position:relative;border:1px solid #ff5a3c26;background:#0a080899}
 .carpeta.drop{outline:1px dashed var(--r);outline-offset:3px;background:#ff5a3c0f}
+.carpeta.arrastrando{opacity:.4}
+.carpeta.antes::before,.carpeta.despues::after{content:"";position:absolute;left:-1px;right:-1px;height:3px;background:var(--r);box-shadow:0 0 8px var(--r)}
+.carpeta.antes::before{top:-8px}
+.carpeta.despues::after{bottom:-8px}
+.chead[draggable="true"]{cursor:grab}
+.chead[draggable="true"]:active{cursor:grabbing}
+.asa-c{padding:0}
+.acc:disabled{opacity:.3;pointer-events:none}
 .chead{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#ff5a3c0d;cursor:pointer;user-select:none;font-size:13px;letter-spacing:.08em}
 .chead:hover{background:#ff5a3c17}
 .flecha{width:10px;color:var(--m);transition:transform .15s;display:inline-block}
