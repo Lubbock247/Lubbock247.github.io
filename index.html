@@ -7,7 +7,7 @@
 <meta name="description" content="Antonio Fajardo · Lubbock247">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/estilo.css?v=15">
+<link rel="stylesheet" href="css/estilo.css?v=16">
 </head>
 <body>
 <div class="frame">
@@ -87,11 +87,12 @@
       <div class="arbol" id="arbol"></div>
     </section>
     <section class="vista" id="vista-proyectos" hidden>
-      <div class="prompt"><a class="r" href="#">~/lubbock247 $</a> gh project list --owner lubbock247<span class="blink r">█</span></div>
+      <div class="prompt"><a class="r" href="#">~/lubbock247 $</a> <span id="p-prompt">gh project list --owner lubbock247</span><span class="blink r">█</span></div>
       <div class="demo" id="p-demo" hidden>
         <span><b>DEMO</b> · SAMPLE PROJECTS, NOT REAL ONES</span>
         <a class="chip" id="p-salir-demo" href="./#projects">EXIT DEMO</a>
       </div>
+      <div class="p-indice" id="p-indice">
       <div class="toolbar">
         <div class="grupo" id="p-filtro">
           <button class="chip on" type="button" data-filtro="open">OPEN <span class="k" id="pk-open"></span></button>
@@ -102,6 +103,8 @@
       </div>
       <div class="resumen m"><span id="p-estado" class="c-estado"></span></div>
       <div class="proyectos" id="p-lista"></div>
+      </div>
+      <div class="p-detalle" id="p-detalle" hidden></div>
     </section>
     <div class="abajo">
       <section class="act">
@@ -225,10 +228,10 @@
   </div>
 </dialog>
 
-<script src="js/app.js?v=15"></script>
-<script src="js/repos.js?v=15"></script>
-<script src="js/projects.js?v=15"></script>
-<script src="js/nuevo-repo.js?v=15"></script>
-<script src="js/nuevo-proyecto.js?v=15"></script>
+<script src="js/app.js?v=16"></script>
+<script src="js/repos.js?v=16"></script>
+<script src="js/projects.js?v=16"></script>
+<script src="js/nuevo-repo.js?v=16"></script>
+<script src="js/nuevo-proyecto.js?v=16"></script>
 </body>
 </html>

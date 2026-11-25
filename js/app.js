@@ -324,12 +324,13 @@ function vista() {
   const v = location.hash.slice(1);
   const enRed = v === 'followers' || v === 'following';
   const enCarpetas = v === 'repositories';
-  const enProyectos = v === 'projects';
+  const enProyectos = v === 'projects' || v.startsWith('projects/');
   $('vista-repos').hidden = enRed || enCarpetas || enProyectos;
   $('vista-red').hidden = !enRed;
   $('vista-carpetas').hidden = !enCarpetas;
   $('vista-proyectos').hidden = !enProyectos;
-  document.querySelectorAll('[data-vista]').forEach(a => a.classList.toggle('on', a.dataset.vista === v));
+  // #projects/3 still lights up the PROJECTS tab.
+  document.querySelectorAll('[data-vista]').forEach(a => a.classList.toggle('on', a.dataset.vista === v.split('/')[0]));
   if (enRed) pintarRed(v);
   if (enCarpetas && typeof abrirCarpetas === 'function') abrirCarpetas();
   if (enProyectos && typeof abrirProyectos === 'function') abrirProyectos();

@@ -229,6 +229,44 @@ dialog .nr-nombre input{border:0;background:none;margin:0;padding:9px 10px 9px 0
 .lineas-term > div:last-child:not(.c):not(.r)::after{content:"█";color:var(--r);margin-left:2px;animation:b 1s steps(1) infinite}
 .term.listo .lineas-term > div:last-child::after{display:none}
 
+/* Project interior: board and table */
+.p-indice,.p-detalle{display:flex;flex-direction:column;gap:20px}
+.p-indice[hidden],.p-detalle[hidden]{display:none}
+.dbarra{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+.dgit{margin-left:auto}
+.dcab{display:flex;flex-direction:column;gap:10px}
+.dtitulo{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:30px;line-height:1;letter-spacing:.04em;text-transform:uppercase;margin:0;min-width:0}
+.dprog{display:flex;align-items:center;gap:14px;font-size:11px;letter-spacing:.15em}
+.dprog .pbar{flex:1;max-width:420px}
+.tablero{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;align-items:flex-start}
+.columna{flex:1 0 260px;max-width:380px;border:1px solid #ff5a3c26;background:#0a080899;display:flex;flex-direction:column}
+.ccab{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#ff5a3c0d;border-bottom:1px solid #ff5a3c1a;font-size:11px;letter-spacing:.18em}
+.ccab i{width:10px;height:10px;flex:none}
+.ccab .ccount{margin-left:auto}
+.ctareas{display:flex;flex-direction:column;gap:8px;padding:10px}
+.ctareas .vacia-c{padding:6px 2px;border:0}
+.tarea{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid #ff5a3c22;background:#140d0c;font-size:13px;min-width:0}
+a.tarea:hover{border-color:var(--r);box-shadow:inset 3px 0 0 var(--r)}
+.tarea.oculta{border-style:dashed;background:none;font-size:11px;letter-spacing:.12em}
+.ttitulo{line-height:1.4;overflow-wrap:anywhere}
+.tmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:10px;letter-spacing:.12em;min-width:0}
+.ttipo{border:1px solid currentColor;padding:0 5px;white-space:nowrap}
+.trepo{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tpie{display:flex;align-items:center;gap:8px}
+.tetis{display:flex;gap:4px;flex-wrap:wrap}
+.tetis span{font-size:10px;letter-spacing:.08em;color:var(--m);border:1px solid #8a767155;padding:0 5px}
+.tavs{display:flex;gap:3px;margin-left:auto}
+.tav{width:20px;height:20px;object-fit:cover;background:#4a140c;clip-path:polygon(0 0,80% 0,100% 20%,100% 100%,20% 100%,0 80%)}
+.ttabla{border:1px solid #ff5a3c26;background:#0a080899}
+.trow{display:grid;grid-template-columns:150px minmax(0,1fr) 190px 150px 70px;gap:12px;align-items:center;padding:10px 12px;border-top:1px solid #ff5a3c14;font-size:13px}
+.trow.cab{border-top:0;background:#ff5a3c0d;font-size:10px;letter-spacing:.18em}
+a.trow:hover{background:#ff5a3c14;box-shadow:inset 3px 0 0 var(--r)}
+.trow .ttitulo{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trow.oculta{font-size:11px;letter-spacing:.12em}
+.tstatus{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.08em;min-width:0}
+.tstatus i{width:8px;height:8px;flex:none}
+.trow .ttipo{font-size:10px;letter-spacing:.1em}
+
 .blink{animation:b 1s steps(1) infinite}@keyframes b{50%{opacity:0}}
 .row{display:grid;grid-template-columns:28px minmax(0,1fr) 130px 70px 90px;padding:9px 6px;border-bottom:1px solid #ff5a3c1a;font-size:14px;align-items:center}
 .row.head{font-size:11px;letter-spacing:.15em}
@@ -282,5 +320,8 @@ dialog input:focus{outline:none;border-color:var(--c)}
   .rrow{grid-template-columns:26px minmax(0,1fr) 64px}
   .acciones{flex-wrap:wrap;justify-content:flex-end}
   .campo{grid-template-columns:minmax(0,1fr);gap:6px}
+  .trow{grid-template-columns:110px minmax(0,1fr) 130px}
+  .columna{flex-basis:240px}
+  .dtitulo{font-size:24px}
   .nr-aviso{margin-left:0}
 }
