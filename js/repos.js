@@ -14,9 +14,11 @@ const ESPERA_GUARDADO = 1200;
 
 const cv = {
   carpetas: null, cargadoComoDueno: null, cargando: null,
-  sinCarpetaAbierta: true, cerradas: new Set(),
+  // Every folder (and /unsorted) starts closed; only the ones opened in this visit are open.
+  sinCarpetaAbierta: false, abiertas: new Set(),
   tipo: 'all', modo: 'carpetas', texto: '',
-  editando: null, colorDe: null, hsv: { h: 0, s: 1, v: 1 },
+  editando: null, menuDe: null, colorDe: null, colorOriginal: null, hsv: { h: 0, s: 1, v: 1 },
+  estrellas: null, estrellando: new Set(),
   arrastrado: null, carpetaArrastrada: null,
   // Autosave
   publicadoTexto: null, sha: null, temporizador: null,
@@ -100,7 +102,66 @@ function abrirCarpetas() {
 
 // Called by js/app.js every time the repo list loads (also after saving a key).
 function alCargarRepos() {
+  cv.estrellas = null;
+  if (esDueno()) cargarEstrellas();
   if (location.hash === '#repositories') abrirCarpetas();
+}
+
+// ---- Stars ----
+// With the key, the star in each row stars or unstars the repo (the key needs Starring → Read and write).
+// Visitors get a link to the repo on GitHub, where they can star it themselves.
+const nombreCompleto = r => (r.full_name || `${USUARIO}/${r.name}`).toLowerCase();
+const clavesEstrella = () => [token(), claveEscritura()].filter((k, i, a) => k && a.indexOf(k) === i);
+
+async function cargarEstrellas() {
+  for (const k of clavesEstrella()) {
+    try {
+      const r = await fetch('https://api.github.com/user/starred?per_page=100', {
+        headers: { Authorization: 'Bearer ' + k, Accept: 'application/vnd.github+json' }, cache: 'no-store'
+      });
+      if (!r.ok) continue;
+      cv.estrellas = new Set((await r.json()).map(x => x.full_name.toLowerCase()));
+      pintarCarpetas();
+      return;
+    } catch {}
+  }
+}
+
+async function alternarEstrella(nombre) {
+  const r = reposLista.find(x => x.name === nombre);
+  if (!r || cv.estrellando.has(nombre)) return;
+  const completo = nombreCompleto(r);
+  if (!cv.estrellas) cv.estrellas = new Set();
+  const tenia = cv.estrellas.has(completo);
+  // Show it straight away; undo if GitHub says no.
+  const cambiar = poner => {
+    if (poner) cv.estrellas.add(completo); else cv.estrellas.delete(completo);
+    r.stargazers_count = Math.max(0, r.stargazers_count + (poner ? 1 : -1));
+    const t = $('t-stars');
+    if (/^\d+$/.test(t.textContent)) t.textContent = Math.max(0, +t.textContent + (poner ? 1 : -1));
+  };
+  cv.estrellando.add(nombre);
+  cambiar(!tenia);
+  pintarCarpetas();
+  let hecho = false;
+  let rechazada = false;
+  for (const k of clavesEstrella()) {
+    try {
+      const res = await fetch(`https://api.github.com/user/starred/${completo}`, {
+        method: tenia ? 'DELETE' : 'PUT',
+        headers: { Authorization: 'Bearer ' + k, Accept: 'application/vnd.github+json' }
+      });
+      if (res.ok) { hecho = true; break; }
+      if (res.status === 401) rechazada = true;
+    } catch {}
+  }
+  cv.estrellando.delete(nombre);
+  if (!hecho) {
+    cambiar(tenia);
+    cv.estado = 'aviso';
+    cv.mensaje = rechazada ? '! KEY REJECTED' : '! YOUR KEY NEEDS STARRING → READ AND WRITE';
+  }
+  pintarCarpetas();
 }
 
 const carpetaDe = nombre => cv.carpetas.find(c => c.repos.includes(nombre));
@@ -110,6 +171,12 @@ function filtrados() {
   return reposLista
     .filter(r => cv.tipo === 'all' || (cv.tipo === 'private') === !!r.private)
     .filter(r => !t || [r.name, r.description, r.language].some(x => (x || '').toLowerCase().includes(t)));
+}
+
+function estrella(r, dueno) {
+  if (!dueno) return `<a class="estrella" href="${esc(r.html_url)}" title="star it on GitHub">★ ${r.stargazers_count}</a>`;
+  const on = !!cv.estrellas && cv.estrellas.has(nombreCompleto(r));
+  return `<button type="button" class="estrella${on ? ' on' : ''}" data-star="${esc(r.name)}" title="${on ? 'unstar' : 'star'}"${cv.estrellando.has(r.name) ? ' disabled' : ''}>${on ? '★' : '☆'} ${r.stargazers_count}</button>`;
 }
 
 function fila(r, ultima, plano) {
@@ -123,22 +190,25 @@ function fila(r, ultima, plano) {
         ${r.description ? `<div class="rdesc">${esc(r.description)}</div>` : ''}
       </div>
       <span class="hide-sm">${r.language ? `<i class="dot" style="background:${COLORES[r.language] || '#888'}"></i>${esc(r.language)}` : '<span class="m">—</span>'}</span>
-      <span class="hide-sm">★ ${r.stargazers_count}</span>
+      <span class="hide-sm">${estrella(r, dueno)}</span>
       <span class="m">${hace(r.pushed_at)}</span>
     </div>`;
 }
 
 function bloque(c, lista) {
   const id = c ? c.id : '';
-  const abierta = c ? !cv.cerradas.has(c.id) : cv.sinCarpetaAbierta;
+  const abierta = c ? cv.abiertas.has(c.id) : cv.sinCarpetaAbierta;
   const editando = c && cv.editando === id;
   const nombre = editando
     ? `<input id="renombrar" value="${esc(c.nombre)}" maxlength="24" aria-label="folder name">`
     : '/' + esc(c ? c.nombre : 'unsorted');
   const acciones = c ? `<span class="acciones">
-      <button type="button" class="acc" data-acc="renombrar">RENAME</button>
-      <button type="button" class="acc" data-acc="color">COLOR</button>
-      <button type="button" class="acc" data-acc="borrar">DELETE</button></span>` : '';
+      <button type="button" class="acc${cv.menuDe === id ? ' on' : ''}" data-acc="menu" aria-haspopup="menu" aria-expanded="${cv.menuDe === id}">EDIT ▾</button></span>` : '';
+  const menu = c && cv.menuDe === id ? `<div class="menu-edit" role="menu">
+      <button type="button" role="menuitem" data-acc="renombrar">RENAME</button>
+      <button type="button" role="menuitem" data-acc="color">COLOR</button>
+      <button type="button" role="menuitem" data-acc="borrar" class="r">DELETE</button>
+    </div>` : '';
   const paleta = c && cv.colorDe === id ? `<div class="paleta">
       ${PALETA.map(p => `<button type="button" class="psw${p === c.color ? ' on' : ''}" data-color="${p}" style="background:${p}" title="${p}"></button>`).join('')}
       <div class="pcustom">
@@ -146,6 +216,10 @@ function bloque(c, lista) {
         <div class="sv" style="--h:${Math.round(cv.hsv.h)}"><i class="sv-punto" style="left:${cv.hsv.s * 100}%;top:${(1 - cv.hsv.v) * 100}%"></i></div>
         <div class="hue"><i class="hue-punto" style="left:${cv.hsv.h / 3.6}%"></i></div>
         <label class="hexfila"><span class="pprev" style="background:${c.color}"></span><span class="m">#</span><input class="hex" value="${c.color.slice(1)}" maxlength="6" spellcheck="false" autocomplete="off" aria-label="hex colour"></label>
+      </div>
+      <div class="pbotones">
+        <button type="button" class="fb on" data-acc="aplicar">UPDATE</button>
+        <button type="button" class="fb" data-acc="cancelar">CANCEL</button>
       </div>
     </div>` : '';
   return `
@@ -157,7 +231,7 @@ function bloque(c, lista) {
         <span class="ccount">${lista.length}</span>
         ${acciones}
       </div>
-      ${paleta}
+      ${menu}${paleta}
       <div class="crepos">
         ${lista.length ? lista.map((r, i) => fila(r, i === lista.length - 1, false)).join('')
           : `<div class="vacia-c">${esDueno() ? '// empty · drag repos here' : '// empty'}</div>`}
@@ -175,6 +249,7 @@ function pintarEstado() {
     local: '<span class="c">✓ SAVED</span>'
   };
   if (textos[cv.estado]) { e.innerHTML = textos[cv.estado]; return; }
+  if (cv.estado === 'aviso') { e.innerHTML = `<span class="r">${esc(cv.mensaje)}</span>`; return; }
   if (cv.estado === 'error') {
     e.innerHTML = `<span class="r">${esc(cv.mensaje)}</span>
       <button type="button" class="chip on" id="c-reintentar">${claveEscritura() ? 'RETRY' : 'ADD WRITE KEY'}</button>`;
@@ -329,7 +404,7 @@ function abrirClaveEscritura() {
 function moverRepo(repo, idDestino) {
   cv.carpetas.forEach(c => { c.repos = c.repos.filter(n => n !== repo); });
   const destino = cv.carpetas.find(c => c.id === idDestino);
-  if (destino) { destino.repos.push(repo); cv.cerradas.delete(destino.id); }
+  if (destino) destino.repos.push(repo);
   marcarCambio();
 }
 
@@ -354,8 +429,8 @@ function guardarNombre() {
 
 function plegar(id) {
   if (id === '') cv.sinCarpetaAbierta = !cv.sinCarpetaAbierta;
-  else if (cv.cerradas.has(id)) cv.cerradas.delete(id);
-  else cv.cerradas.add(id);
+  else if (cv.abiertas.has(id)) cv.abiertas.delete(id);
+  else cv.abiertas.add(id);
   pintarCarpetas();
 }
 
@@ -395,21 +470,32 @@ $('arbol').addEventListener('click', e => {
     pintarCarpetas();
     return;
   }
+  const est = e.target.closest('[data-star]');
+  if (est) { alternarEstrella(est.dataset.star); return; }
   const sec = e.target.closest('.carpeta');
   if (!sec || sec.dataset.carpeta === undefined) return;
   const id = sec.dataset.carpeta;
   const c = cv.carpetas.find(x => x.id === id);
   const sw = e.target.closest('.psw');
-  if (sw && c) { c.color = sw.dataset.color; cv.colorDe = null; marcarCambio(); pintarCarpetas(); return; }
-  if (e.target.closest('.paleta')) return;
-  const acc = e.target.closest('.acc');
+  if (sw && c) { cv.hsv = hexAHsv(sw.dataset.color); aplicarColor(sec, false); return; }
+  const acc = e.target.closest('[data-acc]');
   if (acc && c) {
-    if (acc.dataset.acc === 'renombrar') cv.editando = id;
-    if (acc.dataset.acc === 'color') { cv.colorDe = cv.colorDe === id ? null : id; cv.hsv = hexAHsv(c.color); }
-    if (acc.dataset.acc === 'borrar') { cv.carpetas = cv.carpetas.filter(x => x.id !== id); marcarCambio(); }
+    const que = acc.dataset.acc;
+    if (que === 'menu') { cv.menuDe = cv.menuDe === id ? null : id; cerrarColor(); }
+    if (que === 'renombrar') { cv.menuDe = null; cv.editando = id; }
+    if (que === 'color') { cv.menuDe = null; cv.colorDe = id; cv.colorOriginal = c.color; cv.hsv = hexAHsv(c.color); }
+    if (que === 'borrar') { cv.menuDe = null; cv.carpetas = cv.carpetas.filter(x => x.id !== id); marcarCambio(); }
+    if (que === 'aplicar') {
+      // The colour only counts once UPDATE is pressed.
+      const cambiado = c.color !== cv.colorOriginal;
+      cv.colorDe = cv.colorOriginal = null;
+      if (cambiado) marcarCambio();
+    }
+    if (que === 'cancelar') cerrarColor();
     pintarCarpetas();
     return;
   }
+  if (e.target.closest('.paleta, .menu-edit')) return;
   if (e.target.closest('input')) return;
   if (e.target.closest('.chead')) plegar(id);
 });
@@ -435,7 +521,16 @@ function hexAHsv(hex) {
   return { h: (h * 60 + 360) % 360, s: max ? d / max : 0, v: max };
 }
 
-// Updates the folder and the picker in place (no redraw, so dragging keeps working).
+// Puts the folder back to its colour if the picker is closed without UPDATE.
+function cerrarColor() {
+  if (cv.colorDe === null) return;
+  const c = cv.carpetas.find(x => x.id === cv.colorDe);
+  if (c && cv.colorOriginal) c.color = cv.colorOriginal;
+  cv.colorDe = cv.colorOriginal = null;
+}
+
+// Previews the colour on the folder and the picker in place (no redraw, so dragging keeps working).
+// Nothing is saved until UPDATE.
 function aplicarColor(sec, desdeHex) {
   const c = cv.carpetas.find(x => x.id === sec.dataset.carpeta);
   if (!c) return;
@@ -447,7 +542,6 @@ function aplicarColor(sec, desdeHex) {
   sec.querySelector('.pprev').style.background = c.color;
   if (!desdeHex) sec.querySelector('.hex').value = c.color.slice(1);
   sec.querySelectorAll('.psw').forEach(b => b.classList.toggle('on', b.dataset.color === c.color));
-  marcarCambio();
 }
 
 $('arbol').addEventListener('pointerdown', e => {
@@ -475,12 +569,18 @@ $('arbol').addEventListener('input', e => {
   aplicarColor(e.target.closest('.carpeta'), true);
 });
 
-// Clicking elsewhere or pressing Esc closes the colour picker.
+// Clicking elsewhere or pressing Esc closes the EDIT menu, and the colour picker without applying it.
 document.addEventListener('click', e => {
-  if (cv.colorDe !== null && !e.target.closest('.paleta') && !e.target.closest('[data-acc="color"]')) { cv.colorDe = null; pintarCarpetas(); }
+  let cambio = false;
+  if (cv.menuDe !== null && !e.target.closest('.menu-edit, [data-acc="menu"]')) { cv.menuDe = null; cambio = true; }
+  if (cv.colorDe !== null && !e.target.closest('.paleta, .menu-edit')) { cerrarColor(); cambio = true; }
+  if (cambio) pintarCarpetas();
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && cv.colorDe !== null) { cv.colorDe = null; pintarCarpetas(); }
+  if (e.key !== 'Escape' || (cv.menuDe === null && cv.colorDe === null)) return;
+  cv.menuDe = null;
+  cerrarColor();
+  pintarCarpetas();
 });
 
 // Drag and drop: a repo onto a folder (or /unsorted), or a folder above/below another to reorder.
