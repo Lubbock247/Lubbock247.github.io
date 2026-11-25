@@ -8,8 +8,12 @@ const COLORES = {
   Shell: '#89e051', Lua: '#3e6fd8', 'C++': '#f34b7d', C: '#999', Vue: '#41b883', Dart: '#00b4ab'
 };
 
+const MESES = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+
 const $ = id => document.getElementById(id);
 const token = () => { try { return localStorage.getItem(CLAVE_TOKEN) || ''; } catch { return ''; } };
+const p2 = n => String(n).padStart(2, '0');
 
 async function api(ruta) {
   const h = { Accept: 'application/vnd.github+json' };
@@ -42,10 +46,13 @@ function esc(t) {
   return String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Dates as local YYYY-MM-DD, so a day never shifts because of the time zone.
+const fechaLocal = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+const aFecha = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+
 function reloj() {
   const d = new Date();
-  const p = n => String(n).padStart(2, '0');
-  $('reloj').textContent = `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  $('reloj').textContent = `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
 }
 
 function pintarPerfil(u) {
@@ -56,8 +63,11 @@ function pintarPerfil(u) {
     $('nombre').innerHTML = corto.map(esc).join('<br>');
     $('nombre').dataset.text = corto.join('\n');
   }
+  const repos = (u.public_repos || 0) + (u.total_private_repos || 0);
+  $('n-repos').textContent = repos;
+  $('t-repos').textContent = repos;
+  $('n-sig').textContent = u.following;
   $('n-seg').textContent = u.followers;
-  $('n-repos').textContent = (u.public_repos || 0) + (u.total_private_repos || 0);
 }
 
 function pintarRepos(repos) {
@@ -92,42 +102,80 @@ function nivel(n, max) {
   return f > .75 ? '#3ee6d8' : f > .5 ? '#ff5a3c' : f > .25 ? '#b0402c' : '#5a1f15';
 }
 
-function pintarCeldas(dias) {
+// Draws the calendar like GitHub's: one column per week (Sunday on top), month names above.
+function pintarCeldas(dias, celda) {
+  $('cal').style.setProperty('--cell', celda + 'px');
   const max = Math.max(1, ...dias.map(d => d.n));
-  $('cells').innerHTML = dias.map(d => `<span title="${d.fecha}: ${d.n}" style="background:${nivel(d.n, max)}"></span>`).join('');
+  const hueco = dias.length ? aFecha(dias[0].fecha).getDay() : 0;
+  const celdas = Array(hueco).fill('<span class="vacia"></span>');
+  dias.forEach(d => celdas.push(`<span data-n="${d.n}" data-fecha="${d.fecha}" style="background:${nivel(d.n, max)}"></span>`));
+  $('cells').innerHTML = celdas.join('');
+
+  const etiquetas = Array(Math.ceil(celdas.length / 7)).fill('');
+  const marcas = [];
+  dias.forEach((d, i) => {
+    const f = aFecha(d.fecha);
+    if (f.getDate() === 1) marcas.push([Math.floor((i + hueco) / 7), f.getMonth()]);
+  });
+  if (dias.length && (!marcas.length || marcas[0][0] >= 3)) marcas.unshift([0, aFecha(dias[0].fecha).getMonth()]);
+  marcas.forEach(([col, mes]) => { etiquetas[col] = MESES[mes].slice(0, 3).toUpperCase(); });
+  $('meses').innerHTML = etiquetas.map(t => `<span>${t}</span>`).join('');
+
+  $('cal').scrollLeft = $('cal').scrollWidth;
 }
+
+function textoDia(n, fecha) {
+  const f = aFecha(fecha);
+  const d = f.getDate();
+  const suf = (d % 10 === 1 && d !== 11) ? 'st' : (d % 10 === 2 && d !== 12) ? 'nd' : (d % 10 === 3 && d !== 13) ? 'rd' : 'th';
+  const cuantas = n ? `${n} contribution${n === 1 ? '' : 's'}` : 'No contributions';
+  return `${cuantas} on ${MESES[f.getMonth()]} ${d}${suf}.`;
+}
+
+function mostrarTip(celda) {
+  const tip = $('tip');
+  tip.textContent = textoDia(+celda.dataset.n, celda.dataset.fecha);
+  tip.hidden = false;
+  const r = celda.getBoundingClientRect();
+  const centro = r.left + r.width / 2;
+  const w = tip.offsetWidth;
+  const x = Math.min(Math.max(centro, w / 2 + 8), innerWidth - w / 2 - 8);
+  tip.style.left = x + 'px';
+  tip.style.top = r.top + 'px';
+  tip.style.setProperty('--flecha', (centro - x + w / 2) + 'px');
+}
+
+const ocultarTip = () => { $('tip').hidden = true; };
 
 async function actividadCompleta() {
   const d = await graphql(`{ user(login:"${USUARIO}") { contributionsCollection { contributionCalendar {
     totalContributions weeks { contributionDays { date contributionCount } } } } } }`);
   const cal = d.user.contributionsCollection.contributionCalendar;
-  $('n-commits').textContent = cal.totalContributions;
   $('act-titulo').textContent = '// ACTIVITY.LOG — 365D';
-  pintarCeldas(cal.weeks.flatMap(w => w.contributionDays).map(x => ({ fecha: x.date, n: x.contributionCount })));
+  $('act-total').textContent = `${cal.totalContributions} CONTRIB · LAST YEAR`;
+  pintarCeldas(cal.weeks.flatMap(w => w.contributionDays).map(x => ({ fecha: x.date, n: x.contributionCount })), 13);
 }
 
 async function actividadPublica() {
   const eventos = await api(`/users/${USUARIO}/events/public?per_page=100`);
   const porDia = {};
-  let commits = 0;
+  let total = 0;
   eventos.forEach(e => {
-    const f = e.created_at.slice(0, 10);
+    const f = fechaLocal(new Date(e.created_at));
     const n = e.type === 'PushEvent' ? (e.payload.size || 1) : 1;
-    if (e.type === 'PushEvent') commits += n;
     porDia[f] = (porDia[f] || 0) + n;
   });
-  const dias = [];
   const hoy = new Date();
-  const inicio = new Date(hoy);
-  inicio.setDate(hoy.getDate() - 7 * 13 + 1 - hoy.getDay());
+  const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - hoy.getDay() - 7 * 12);
+  const dias = [];
   for (let d = new Date(inicio); d <= hoy; d.setDate(d.getDate() + 1)) {
-    const f = d.toISOString().slice(0, 10);
+    const f = fechaLocal(d);
+    total += porDia[f] || 0;
     dias.push({ fecha: f, n: porDia[f] || 0 });
   }
-  $('cells').style.gridTemplateColumns = 'repeat(13,1fr)';
-  $('n-commits').textContent = commits;
   $('act-titulo').textContent = '// ACTIVITY.LOG — 90D';
-  pintarCeldas(dias);
+  $('act-total').textContent = `${total} CONTRIB · LAST 90D`;
+  pintarCeldas(dias, 20);
 }
 
 async function cargar() {
@@ -146,15 +194,24 @@ async function cargar() {
     if (conToken && String(e.message) === '401') localStorage.removeItem(CLAVE_TOKEN);
     return;
   }
+  api(`/users/${USUARIO}/starred?per_page=100`).then(s => { $('t-stars').textContent = s.length; }).catch(() => {});
+  api(`/users/${USUARIO}/orgs`).then(orgs => {
+    if (orgs[0]) $('org-link').href = 'https://github.com/' + orgs[0].login;
+  }).catch(() => {});
   try {
     if (conToken) await actividadCompleta(); else await actividadPublica();
   } catch {
     try { await actividadPublica(); } catch {}
   }
-  api(`/users/${USUARIO}/orgs`).then(orgs => {
-    if (orgs[0]) $('org-link').href = 'https://github.com/' + orgs[0].login;
-  }).catch(() => {});
 }
+
+$('cells').addEventListener('pointerover', e => {
+  const celda = e.target.closest('[data-n]');
+  if (celda) mostrarTip(celda); else ocultarTip();
+});
+$('cells').addEventListener('pointerleave', ocultarTip);
+addEventListener('scroll', ocultarTip, true);
+addEventListener('resize', ocultarTip);
 
 $('id-btn').addEventListener('click', () => {
   $('token').value = token();

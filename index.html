@@ -7,7 +7,7 @@
 <meta name="description" content="Antonio Fajardo · Lubbock247">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/estilo.css?v=1">
+<link rel="stylesheet" href="css/estilo.css?v=2">
 </head>
 <body>
 <div class="frame">
@@ -31,7 +31,9 @@
         <div class="ln"><span class="m">LOC</span><span>Mislata · VLC</span></div>
         <div class="ln"><span class="m">ORG</span><span>Ghestec</span></div>
         <div class="ln"><span class="m">STACK</span><span id="stack">—</span></div>
-        <div class="ln"><span class="m">STATS</span><span><span class="c" id="n-repos">–</span> repos · <span class="c" id="n-commits">–</span> contrib · <span class="c" id="n-seg">–</span> followers</span></div>
+        <div class="ln"><span class="m">REPOS</span><a class="c" id="n-repos" href="https://github.com/Lubbock247?tab=repositories">–</a></div>
+        <div class="ln"><span class="m">FOLLOWING</span><a class="c" id="n-sig" href="https://github.com/Lubbock247?tab=following">–</a></div>
+        <div class="ln"><span class="m">FOLLOWERS</span><a class="c" id="n-seg" href="https://github.com/Lubbock247?tab=followers">–</a></div>
       </div>
       <nav class="botones">
         <a class="fb on" href="https://github.com/Lubbock247">GITHUB</a>
@@ -42,23 +44,39 @@
   </aside>
 
   <main class="main">
+    <nav class="tabs">
+      <a href="https://github.com/Lubbock247"><span class="n m">01</span>OVERVIEW</a>
+      <a href="https://github.com/Lubbock247?tab=repositories"><span class="n m">02</span>REPOSITORIES<span class="cnt" id="t-repos"></span></a>
+      <a href="https://github.com/Lubbock247?tab=projects"><span class="n m">03</span>PROJECTS</a>
+      <a href="https://github.com/Lubbock247?tab=packages"><span class="n m">04</span>PACKAGES</a>
+      <a href="https://github.com/Lubbock247?tab=stars"><span class="n m">05</span>STARS<span class="cnt" id="t-stars"></span></a>
+    </nav>
     <div class="prompt"><span class="r">~/lubbock247 $</span> ls -la repos/ --sort=updated<span class="blink r">█</span></div>
     <div class="tabla">
       <div class="row head m"><span></span><span>NAME</span><span>LANG</span><span class="hide-sm">STARS</span><span>UPDATED</span></div>
       <div id="repos"></div>
     </div>
     <div class="abajo">
-      <div>
+      <section class="act">
         <div class="tag" id="act-titulo">// ACTIVITY.LOG</div>
-        <div class="cells" id="cells"></div>
-      </div>
-      <div>
+        <div class="cal" id="cal">
+          <div class="meses" id="meses"></div>
+          <div class="cells" id="cells"></div>
+        </div>
+        <div class="leyenda m">
+          <a href="https://github.com/Lubbock247" id="act-total"></a>
+          <span class="escala">LESS<i></i><i></i><i></i><i></i><i></i>MORE</span>
+        </div>
+      </section>
+      <section>
         <div class="tag">// LANG.DIST</div>
         <div id="langs" class="langs"></div>
-      </div>
+      </section>
     </div>
   </main>
 </div>
+
+<div id="tip" class="tip" role="tooltip" hidden></div>
 
 <dialog id="ajustes">
   <form method="dialog" id="form-token">
@@ -73,6 +91,6 @@
   </form>
 </dialog>
 
-<script src="js/app.js?v=1"></script>
+<script src="js/app.js?v=2"></script>
 </body>
 </html>
