@@ -1,0 +1,25 @@
+{
+  "folders": [
+    {
+      "id": "games",
+      "name": "games",
+      "color": "#ff5a3c",
+      "repos": []
+    },
+    {
+      "id": "web",
+      "name": "web",
+      "color": "#3ee6d8",
+      "repos": [
+        "charcaland",
+        "cv"
+      ]
+    },
+    {
+      "id": "tools",
+      "name": "tools",
+      "color": "#e8c547",
+      "repos": []
+    }
+  ]
+}

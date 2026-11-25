@@ -1,6 +1,9 @@
 const USUARIO = 'Lubbock247';
 const CLAVE_TOKEN = 'lubbock-token';
-const MAX_REPOS = 50;
+const MAX_REPOS = 8;
+
+// Repos shown on the site (no archived ones, not this site's own repo). Also used by js/repos.js.
+let reposLista = null;
 
 const COLORES = {
   JavaScript: '#e8c547', TypeScript: '#3178c6', HTML: '#e06a4f', CSS: '#663399', SCSS: '#c6538c',
@@ -74,6 +77,7 @@ function pintarRepos(repos) {
   const visibles = repos
     .filter(r => !r.archived && r.name.toLowerCase() !== (USUARIO + '.github.io').toLowerCase())
     .sort((a, b) => new Date(b.pushed_at) - new Date(a.pushed_at));
+  reposLista = visibles;
   const lista = visibles.slice(0, MAX_REPOS);
   $('n-repos').textContent = visibles.length;
   $('t-repos').textContent = visibles.length;
@@ -85,7 +89,12 @@ function pintarRepos(repos) {
       <span>${r.language ? `<i class="dot" style="background:${COLORES[r.language] || '#888'}"></i>${esc(r.language)}` : '<span class="m">—</span>'}</span>
       <span class="hide-sm">${r.stargazers_count}</span>
       <span class="m">${hace(r.pushed_at)}</span>
-    </a>`).join('');
+    </a>`).join('') + (visibles.length > MAX_REPOS ? `
+    <a class="row" href="#repositories">
+      <span class="r">▸</span>
+      <span class="nm m">+${visibles.length - MAX_REPOS} more · open repositories/</span>
+    </a>` : '');
+  if (typeof alCargarRepos === 'function') alCargarRepos();
 
   const cuenta = {};
   repos.forEach(r => { if (r.language) cuenta[r.language] = (cuenta[r.language] || 0) + 1; });
@@ -313,10 +322,13 @@ async function pintarRed(tipo) {
 function vista() {
   const v = location.hash.slice(1);
   const enRed = v === 'followers' || v === 'following';
-  $('vista-repos').hidden = enRed;
+  const enCarpetas = v === 'repositories';
+  $('vista-repos').hidden = enRed || enCarpetas;
   $('vista-red').hidden = !enRed;
+  $('vista-carpetas').hidden = !enCarpetas;
   document.querySelectorAll('[data-vista]').forEach(a => a.classList.toggle('on', a.dataset.vista === v));
   if (enRed) pintarRed(v);
+  if (enCarpetas && typeof abrirCarpetas === 'function') abrirCarpetas();
 }
 
 addEventListener('hashchange', vista);
@@ -387,4 +399,5 @@ $('token').addEventListener('input', () => { $('token-err').textContent = ''; })
 reloj();
 setInterval(reloj, 30000);
 cargar();
-vista();
+// js/repos.js loads after this file, so the first view is drawn once every script has run.
+addEventListener('DOMContentLoaded', vista);

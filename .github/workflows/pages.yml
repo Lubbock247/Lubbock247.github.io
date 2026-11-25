@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build site folder
-        run: rsync -a --exclude .git --exclude .github --exclude data --exclude README.md --exclude .gitignore ./ _site/
+        run: rsync -a --exclude .git --exclude .github --exclude data/contrib.json --exclude README.md --exclude .gitignore ./ _site/
 
       - name: Save contribution calendar
         env:

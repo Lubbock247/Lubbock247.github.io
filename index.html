@@ -7,7 +7,7 @@
 <meta name="description" content="Antonio Fajardo · Lubbock247">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/estilo.css?v=7">
+<link rel="stylesheet" href="css/estilo.css?v=8">
 </head>
 <body>
 <div class="frame">
@@ -31,7 +31,7 @@
         <div class="ln"><span class="m">LOC</span><span>Mislata · VLC</span></div>
         <a class="ln link" href="https://github.com/Ghestec"><span class="m">ORG</span><span>Ghestec</span></a>
         <div class="ln"><span class="m">STACK</span><span id="stack">—</span></div>
-        <a class="ln link" href="https://github.com/Lubbock247?tab=repositories"><span class="m">REPOS</span><span class="c num" id="n-repos">–</span></a>
+        <a class="ln link" href="#repositories" data-vista="repositories"><span class="m">REPOS</span><span class="c num" id="n-repos">–</span></a>
         <a class="ln link" href="#following" data-vista="following"><span class="m">FOLLOWING</span><span class="c num" id="n-sig">–</span></a>
         <a class="ln link" href="#followers" data-vista="followers"><span class="m">FOLLOWERS</span><span class="c num" id="n-seg">–</span></a>
       </div>
@@ -46,7 +46,7 @@
   <main class="main">
     <nav class="tabs">
       <a href="#" data-vista=""><span class="n m">01</span>OVERVIEW</a>
-      <a href="https://github.com/Lubbock247?tab=repositories"><span class="n m">02</span>REPOSITORIES<span class="cnt" id="t-repos"></span></a>
+      <a href="#repositories" data-vista="repositories"><span class="n m">02</span>REPOSITORIES<span class="cnt" id="t-repos"></span></a>
       <a href="https://github.com/Lubbock247?tab=projects"><span class="n m">03</span>PROJECTS</a>
       <a href="https://github.com/Lubbock247?tab=packages"><span class="n m">04</span>PACKAGES</a>
       <a href="https://github.com/Lubbock247?tab=stars"><span class="n m">05</span>STARS<span class="cnt" id="t-stars"></span></a>
@@ -67,6 +67,23 @@
         <a href="#" class="m">← REPOS</a>
       </div>
       <div class="gente" id="gente"></div>
+    </section>
+    <section class="vista" id="vista-carpetas" hidden>
+      <div class="prompt"><a class="r" href="#">~/lubbock247 $</a> tree repos/ -L 2 --sort=updated<span class="blink r">█</span></div>
+      <div class="toolbar">
+        <label class="filtro"><span class="r">&gt;</span><input id="c-buscar" placeholder="filter by name, description or language" autocomplete="off"></label>
+        <div class="grupo" id="c-tipos">
+          <button class="chip on" type="button" data-tipo="all">ALL <span class="k" id="k-all"></span></button>
+          <button class="chip" type="button" data-tipo="public">PUBLIC <span class="k" id="k-public"></span></button>
+          <button class="chip" type="button" data-tipo="private">PRIVATE <span class="k" id="k-private"></span></button>
+        </div>
+        <div class="grupo" id="c-modo">
+          <button class="chip on" type="button" data-modo="carpetas">▤ FOLDERS</button>
+          <button class="chip" type="button" data-modo="plano">≡ FLAT</button>
+        </div>
+      </div>
+      <div class="resumen m"><span id="c-resumen"></span><span id="c-estado" class="c-estado"></span></div>
+      <div class="arbol" id="arbol"></div>
     </section>
     <div class="abajo">
       <section class="act">
@@ -103,6 +120,24 @@
   </form>
 </dialog>
 
-<script src="js/app.js?v=7"></script>
+<dialog id="d-escritura">
+  <form method="dialog">
+    <div class="tag">// WRITE_KEY · FOLDERS</div>
+    <p class="nota m">Saving folders needs a second key that can only edit this site's repo.
+      Create it at github.com/settings/personal-access-tokens with
+      <span class="c">Only select repositories → Lubbock247.github.io</span> and
+      <span class="c">Contents → Read and write</span>.</p>
+    <input id="w-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
+    <div class="err" id="w-err" aria-live="polite"></div>
+    <div class="botones">
+      <button class="fb on" id="w-guardar" value="guardar">SAVE</button>
+      <button class="fb" id="w-borrar" value="borrar" type="button">CLEAR</button>
+      <button class="fb" value="cerrar">CLOSE</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="js/app.js?v=8"></script>
+<script src="js/repos.js?v=8"></script>
 </body>
 </html>
