@@ -7,7 +7,7 @@
 <meta name="description" content="Antonio Fajardo · Lubbock247">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/estilo.css?v=13">
+<link rel="stylesheet" href="css/estilo.css?v=14">
 </head>
 <body>
 <div class="frame">
@@ -81,8 +81,9 @@
           <button class="chip on" type="button" data-modo="carpetas">▤ FOLDERS</button>
           <button class="chip" type="button" data-modo="plano">≡ FLAT</button>
         </div>
+        <button class="chip on nuevo-r" type="button" id="c-nuevo" hidden>+ NEW REPO</button>
       </div>
-      <div class="resumen m"><span id="c-resumen"></span><span id="c-estado" class="c-estado"></span></div>
+      <div class="resumen m"><span id="c-estado" class="c-estado"></span></div>
       <div class="arbol" id="arbol"></div>
     </section>
     <section class="vista" id="vista-proyectos" hidden>
@@ -99,7 +100,7 @@
         </div>
         <a class="chip nuevo-p" id="p-nuevo" href="https://github.com/Lubbock247?tab=projects" hidden>+ NEW PROJECT ON GITHUB</a>
       </div>
-      <div class="resumen m"><span id="p-resumen"></span><span id="p-estado" class="c-estado"></span></div>
+      <div class="resumen m"><span id="p-estado" class="c-estado"></span></div>
       <div class="proyectos" id="p-lista"></div>
     </section>
     <div class="abajo">
@@ -170,8 +171,38 @@
   </form>
 </dialog>
 
-<script src="js/app.js?v=13"></script>
-<script src="js/repos.js?v=13"></script>
-<script src="js/projects.js?v=13"></script>
+<dialog id="d-nuevo">
+  <form method="dialog" id="nr-formulario">
+    <div class="tag">// NEW_REPOSITORY</div>
+    <label class="campo"><span class="m">NAME</span>
+      <span class="nr-nombre"><span class="m">lubbock247 /</span><input id="nr-nombre" autocomplete="off" spellcheck="false" maxlength="100" placeholder="my-new-repo"></span>
+    </label>
+    <div class="nr-aviso m" id="nr-aviso" aria-live="polite"></div>
+    <label class="campo"><span class="m">DESCRIPTION</span><input id="nr-desc" autocomplete="off" maxlength="350" placeholder="optional"></label>
+    <div class="campo"><span class="m">VISIBILITY</span><div class="grupo" id="nr-vis"></div></div>
+    <div class="campo"><span class="m">README</span><div class="grupo" id="nr-readme"></div></div>
+    <div class="campo"><span class="m">.GITIGNORE</span><div class="grupo envuelve" id="nr-git"></div></div>
+    <div class="campo"><span class="m">LICENSE</span><div class="grupo envuelve" id="nr-lic"></div></div>
+    <div class="campo"><span class="m">FOLDER</span><div class="grupo envuelve" id="nr-carpeta"></div></div>
+    <div class="botones">
+      <button class="fb on" id="nr-crear" value="crear">CREATE</button>
+      <button class="fb" type="button" id="nr-cancelar">CANCEL</button>
+    </div>
+  </form>
+  <div class="term" id="nr-term" hidden>
+    <div class="tag">// NEW_REPOSITORY</div>
+    <div class="lineas-term" id="nr-lineas"></div>
+    <div class="botones" id="nr-fin" hidden>
+      <a class="fb on" id="nr-abrir" href="#" target="_blank" rel="noopener">OPEN ON GITHUB</a>
+      <button class="fb" type="button" id="nr-volver" hidden>BACK</button>
+      <button class="fb" type="button" id="nr-listo">DONE</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="js/app.js?v=14"></script>
+<script src="js/repos.js?v=14"></script>
+<script src="js/projects.js?v=14"></script>
+<script src="js/nuevo-repo.js?v=14"></script>
 </body>
 </html>

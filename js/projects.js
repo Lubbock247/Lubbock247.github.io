@@ -151,6 +151,8 @@ async function publicarProyectos() {
     if (r.status === 403 || r.status === 404) throw new Error('permiso');
     if (!r.ok) throw new Error(String(r.status));
     pv.estado = 'publicado';
+    // A short confirmation, then the row goes away.
+    setTimeout(() => { if (pv.estado === 'publicado') { pv.estado = ''; pintarEstadoProyectos(); } }, 4000);
   } catch (e) {
     pv.estado = 'error';
     pv.mensaje = e.message === 'permiso' ? '! PUBLIC LIST NOT UPDATED · YOUR KEY CAN ONLY READ'
@@ -170,7 +172,6 @@ function pintarEstadoProyectos() {
     return;
   }
   const textos = {
-    aldia: '<span class="c">✓ LIVE · PUBLIC LIST UP TO DATE</span>',
     publicando: '<span class="c">UPDATING PUBLIC LIST…</span>',
     publicado: '<span class="c">✓ LIVE · PUBLIC LIST UPDATED FOR VISITORS</span>'
   };
@@ -229,12 +230,10 @@ function pintarProyectos() {
   $('pk-closed').textContent = lista.length - abiertos.length;
   $('pk-all').textContent = lista.length;
   const vis = lista.filter(p => pv.filtro === 'all' || (pv.filtro === 'closed') === p.closed);
-  const items = vis.reduce((a, p) => a + p.items, 0);
-  $('p-resumen').textContent = `${vis.length} PROJECT${vis.length === 1 ? '' : 'S'} · ${items} ITEM${items === 1 ? '' : 'S'}`;
 
   if (vis.length) { $('p-lista').innerHTML = vis.map(tarjetaProyecto).join(''); return; }
   const vacio = !lista.length
-    ? (esDueno() ? '// no projects yet · create one on GitHub, then come back here' : '// no public projects yet')
+    ? (esDueno() ? '// no projects yet' : '// no public projects yet')
     : `// no ${pv.filtro} projects`;
   $('p-lista').innerHTML = `<div class="vacio m">${vacio}</div>`;
 }

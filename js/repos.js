@@ -262,6 +262,7 @@ function pintarCarpetas() {
   if (location.hash !== '#repositories') return;
   const dueno = esDueno();
   $('vista-carpetas').classList.toggle('solo-lectura', !dueno);
+  $('c-nuevo').hidden = !dueno;
   pintarEstado();
   if (!reposLista || !cv.carpetas || cv.cargadoComoDueno !== dueno) {
     $('arbol').innerHTML = '<div class="vacio m">loading…</div>';
@@ -274,14 +275,6 @@ function pintarCarpetas() {
   $('k-private').textContent = priv;
 
   const lista = filtrados();
-  const conocidos = new Set(reposLista.map(r => r.name));
-  const usadas = cv.carpetas.filter(c => c.repos.some(n => conocidos.has(n)));
-  const n = (k, palabra) => `${k} ${palabra}${k === 1 ? '' : 'S'}`;
-  $('c-resumen').textContent = [
-    n(lista.length, 'REPO'),
-    n(dueno ? cv.carpetas.length : usadas.length, 'FOLDER'),
-    n(new Set(lista.map(r => r.language).filter(Boolean)).size, 'LANGUAGE')
-  ].join(' · ');
 
   if (cv.modo === 'plano') {
     $('arbol').innerHTML = lista.length
@@ -318,6 +311,11 @@ function marcarCambio() {
   pintarEstado();
 }
 
+// A short confirmation, then the status row goes away.
+function ocultarConfirmacion() {
+  setTimeout(() => { if (cv.estado === 'guardado' || cv.estado === 'local') { cv.estado = ''; pintarEstado(); } }, 4000);
+}
+
 function error(mensaje) {
   cv.estado = 'error';
   cv.mensaje = mensaje;
@@ -331,7 +329,7 @@ async function guardarCarpetas() {
   const publicos = new Set(reposLista.filter(r => !r.private).map(r => r.name));
   const texto = textoPublico(cv.carpetas, n => publicos.has(n));
   // Only private repos moved: nothing public changed, so there is nothing to publish.
-  if (texto === cv.publicadoTexto) { cv.estado = 'local'; pintarEstado(); return; }
+  if (texto === cv.publicadoTexto) { cv.estado = 'local'; pintarEstado(); ocultarConfirmacion(); return; }
 
   // A separate write key if there is one; otherwise try the main key (it works if it has Contents → Read and write).
   const usandoPrincipal = !claveEscritura();
@@ -370,6 +368,7 @@ async function guardarCarpetas() {
     cv.sha = (await r.json()).content.sha;
     cv.publicadoTexto = texto;
     cv.estado = 'guardado';
+    ocultarConfirmacion();
   } catch (e) {
     cv.sha = null;
     const m = e.message;
