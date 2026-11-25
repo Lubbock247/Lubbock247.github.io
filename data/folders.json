@@ -3,7 +3,7 @@
     {
       "id": "tools",
       "name": "tools",
-      "color": "#e8c547",
+      "color": "#3178c6",
       "repos": []
     },
     {
@@ -15,7 +15,7 @@
     {
       "id": "web",
       "name": "web",
-      "color": "#3ee6d8",
+      "color": "#296800",
       "repos": [
         "charcaland",
         "cv"
