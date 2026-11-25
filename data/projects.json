@@ -13,7 +13,13 @@
         "doing": 0,
         "done": 0,
         "none": 0
-      }
+      },
+      "opciones": [
+        "Todo",
+        "In Progress",
+        "Done"
+      ],
+      "tareas": []
     }
   ]
 }
