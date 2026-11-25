@@ -16,7 +16,7 @@ const cv = {
   carpetas: null, cargadoComoDueno: null, cargando: null,
   sinCarpetaAbierta: true, cerradas: new Set(),
   tipo: 'all', modo: 'carpetas', texto: '',
-  editando: null, colorDe: null, moverDe: null,
+  editando: null, colorDe: null, hsv: { h: 0, s: 1, v: 1 },
   arrastrado: null, carpetaArrastrada: null,
   // Autosave
   publicadoTexto: null, sha: null, temporizador: null,
@@ -109,29 +109,20 @@ function filtrados() {
 function fila(r, ultima, plano) {
   const c = carpetaDe(r.name);
   const dueno = esDueno();
-  const menu = cv.moverDe === r.name ? `
-      <div class="mover">
-        <div class="tag">// MOVE TO</div>
-        ${cv.carpetas.map(x => `<button type="button" data-mover="${esc(x.id)}" class="${c === x ? 'on' : ''}">
-          <span class="sw" style="background:${x.color}"></span>/${esc(x.nombre)}</button>`).join('')}
-        <button type="button" data-mover="" class="${c ? '' : 'on'}"><span class="sw" style="border:1px dashed #8a7671"></span>/unsorted</button>
-      </div>` : '';
   return `
     <div class="rrow" draggable="${dueno}" data-repo="${esc(r.name)}">
-      <button type="button" class="asa" title="move to a folder (or drag)">⋮⋮</button>
       <span class="rama">${plano ? '<span class="r">▸</span>' : (ultima ? '└─' : '├─')}</span>
       <div class="rnombre">
-        <a href="${esc(r.html_url)}">${esc(r.name)}</a>${r.private ? '<span class="lock">PRIVATE</span>' : ''}${r.fork ? '<span class="fork">fork</span>' : ''}${plano && c ? `<span class="ftag" style="color:${c.color}">/${esc(c.nombre)}</span>` : ''}
+        <a href="${esc(r.html_url)}"${dueno ? ' draggable="false"' : ''}>${esc(r.name)}</a>${r.private ? '<span class="lock">PRIVATE</span>' : ''}${r.fork ? '<span class="fork">fork</span>' : ''}${plano && c ? `<span class="ftag" style="color:${c.color}">/${esc(c.nombre)}</span>` : ''}
         ${r.description ? `<div class="rdesc">${esc(r.description)}</div>` : ''}
       </div>
       <span class="hide-sm">${r.language ? `<i class="dot" style="background:${COLORES[r.language] || '#888'}"></i>${esc(r.language)}` : '<span class="m">—</span>'}</span>
       <span class="hide-sm">★ ${r.stargazers_count}</span>
       <span class="m">${hace(r.pushed_at)}</span>
-      ${menu}
     </div>`;
 }
 
-function bloque(c, lista, pos, total) {
+function bloque(c, lista) {
   const id = c ? c.id : '';
   const abierta = c ? !cv.cerradas.has(c.id) : cv.sinCarpetaAbierta;
   const editando = c && cv.editando === id;
@@ -139,19 +130,21 @@ function bloque(c, lista, pos, total) {
     ? `<input id="renombrar" value="${esc(c.nombre)}" maxlength="24" aria-label="folder name">`
     : '/' + esc(c ? c.nombre : 'unsorted');
   const acciones = c ? `<span class="acciones">
-      <button type="button" class="acc" data-acc="subir" title="move folder up"${pos === 0 ? ' disabled' : ''}>↑</button>
-      <button type="button" class="acc" data-acc="bajar" title="move folder down"${pos === total - 1 ? ' disabled' : ''}>↓</button>
       <button type="button" class="acc" data-acc="renombrar">RENAME</button>
       <button type="button" class="acc" data-acc="color">COLOR</button>
       <button type="button" class="acc" data-acc="borrar">DELETE</button></span>` : '';
   const paleta = c && cv.colorDe === id ? `<div class="paleta">
       ${PALETA.map(p => `<button type="button" class="psw${p === c.color ? ' on' : ''}" data-color="${p}" style="background:${p}" title="${p}"></button>`).join('')}
-      <label class="pcustom">CUSTOM <input type="color" value="${c.color}"></label>
+      <div class="pcustom">
+        <div class="tag">// CUSTOM</div>
+        <div class="sv" style="--h:${Math.round(cv.hsv.h)}"><i class="sv-punto" style="left:${cv.hsv.s * 100}%;top:${(1 - cv.hsv.v) * 100}%"></i></div>
+        <div class="hue"><i class="hue-punto" style="left:${cv.hsv.h / 3.6}%"></i></div>
+        <label class="hexfila"><span class="pprev" style="background:${c.color}"></span><span class="m">#</span><input class="hex" value="${c.color.slice(1)}" maxlength="6" spellcheck="false" autocomplete="off" aria-label="hex colour"></label>
+      </div>
     </div>` : '';
   return `
     <section class="carpeta${abierta ? '' : ' cerrada'}" data-carpeta="${esc(id)}">
       <div class="chead"${c && esDueno() && !editando ? ' draggable="true"' : ''}>
-        ${c ? '<span class="asa asa-c" title="drag to reorder">⋮⋮</span>' : ''}
         <span class="flecha">▾</span>
         <span class="sw" style="${c ? `background:${c.color}` : 'border:1px dashed #8a7671'}"></span>
         <span class="cnombre">${nombre}</span>
@@ -161,7 +154,7 @@ function bloque(c, lista, pos, total) {
       ${paleta}
       <div class="crepos">
         ${lista.length ? lista.map((r, i) => fila(r, i === lista.length - 1, false)).join('')
-          : `<div class="vacia-c">${esDueno() ? '// empty · drag repos here or use ⋮⋮' : '// empty'}</div>`}
+          : `<div class="vacia-c">${esDueno() ? '// empty · drag repos here' : '// empty'}</div>`}
       </div>
     </section>`;
 }
@@ -219,7 +212,7 @@ function pintarCarpetas() {
   cv.carpetas.forEach((c, i) => {
     const dentro = lista.filter(r => c.repos.includes(r.name));
     // Visitors don't see folders that have nothing public in them.
-    if (dentro.length || (dueno && !cv.texto && cv.tipo === 'all')) html.push(bloque(c, dentro, i, cv.carpetas.length));
+    if (dentro.length || (dueno && !cv.texto && cv.tipo === 'all')) html.push(bloque(c, dentro));
   });
   const sueltos = lista.filter(r => !carpetaDe(r.name));
   if (sueltos.length || (dueno && !cv.texto)) html.push(bloque(null, sueltos));
@@ -259,13 +252,10 @@ async function guardarCarpetas() {
   // Only private repos moved: nothing public changed, so there is nothing to publish.
   if (texto === cv.publicadoTexto) { cv.estado = 'local'; pintarEstado(); return; }
 
-  const clave = claveEscritura();
-  if (!clave) {
-    error('! NOT PUBLISHED · A WRITE KEY IS NEEDED');
-    pintarEstado();
-    abrirClaveEscritura();
-    return;
-  }
+  // A separate write key if there is one; otherwise try the main key (it works if it has Contents → Read and write).
+  const usandoPrincipal = !claveEscritura();
+  const clave = claveEscritura() || token();
+  if (!clave) return;
   cv.guardando = true;
   cv.estado = 'guardando';
   pintarEstado();
@@ -301,10 +291,13 @@ async function guardarCarpetas() {
     cv.sha = null;
     const m = e.message;
     if (m === 'rechazada') {
-      try { localStorage.removeItem(CLAVE_ESCRITURA); } catch {}
-      error('! WRITE KEY REJECTED');
+      if (!usandoPrincipal) { try { localStorage.removeItem(CLAVE_ESCRITURA); } catch {} }
+      error(usandoPrincipal ? '! YOUR KEY WAS REJECTED' : '! WRITE KEY REJECTED');
     } else if (m === 'permiso') {
-      error('! THE WRITE KEY CANNOT EDIT THIS REPO (CONTENTS → READ AND WRITE)');
+      error(usandoPrincipal
+        ? '! NOT PUBLISHED · YOUR KEY CAN ONLY READ'
+        : '! THE WRITE KEY CANNOT EDIT THIS REPO (CONTENTS → READ AND WRITE)');
+      if (usandoPrincipal) abrirClaveEscritura();
     } else {
       error('! COULD NOT SAVE · ' + m);
     }
@@ -394,21 +387,6 @@ $('arbol').addEventListener('click', e => {
     pintarCarpetas();
     return;
   }
-  const destino = e.target.closest('[data-mover]');
-  if (destino) {
-    moverRepo(cv.moverDe, destino.dataset.mover);
-    cv.moverDe = null;
-    pintarCarpetas();
-    return;
-  }
-  const asa = e.target.closest('.rrow .asa');
-  if (asa) {
-    const repo = asa.closest('.rrow').dataset.repo;
-    cv.moverDe = cv.moverDe === repo ? null : repo;
-    cv.colorDe = null;
-    pintarCarpetas();
-    return;
-  }
   const sec = e.target.closest('.carpeta');
   if (!sec || sec.dataset.carpeta === undefined) return;
   const id = sec.dataset.carpeta;
@@ -418,11 +396,8 @@ $('arbol').addEventListener('click', e => {
   if (e.target.closest('.paleta')) return;
   const acc = e.target.closest('.acc');
   if (acc && c) {
-    const pos = cv.carpetas.indexOf(c);
-    if (acc.dataset.acc === 'subir') moverCarpeta(id, pos - 1);
-    if (acc.dataset.acc === 'bajar') moverCarpeta(id, pos + 1);
     if (acc.dataset.acc === 'renombrar') cv.editando = id;
-    if (acc.dataset.acc === 'color') { cv.colorDe = cv.colorDe === id ? null : id; cv.moverDe = null; }
+    if (acc.dataset.acc === 'color') { cv.colorDe = cv.colorDe === id ? null : id; cv.hsv = hexAHsv(c.color); }
     if (acc.dataset.acc === 'borrar') { cv.carpetas = cv.carpetas.filter(x => x.id !== id); marcarCambio(); }
     pintarCarpetas();
     return;
@@ -438,26 +413,66 @@ $('arbol').addEventListener('keydown', e => {
 });
 $('arbol').addEventListener('focusout', e => { if (e.target.id === 'renombrar' && cv.editando !== null) guardarNombre(); });
 
-// Custom colour: preview while choosing, close the picker when done.
-$('arbol').addEventListener('input', e => {
-  if (e.target.type !== 'color') return;
-  const sec = e.target.closest('.carpeta');
+// Custom colour: a saturation/brightness square, a hue bar and a hex field, all live.
+function hsvAHex({ h, s, v }) {
+  const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+  return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join('');
+}
+function hexAHsv(hex) {
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const d = max - Math.min(r, g, b);
+  let h = 0;
+  if (d) h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: (h * 60 + 360) % 360, s: max ? d / max : 0, v: max };
+}
+
+// Updates the folder and the picker in place (no redraw, so dragging keeps working).
+function aplicarColor(sec, desdeHex) {
   const c = cv.carpetas.find(x => x.id === sec.dataset.carpeta);
-  c.color = e.target.value;
+  if (!c) return;
+  c.color = hsvAHex(cv.hsv);
   sec.querySelector('.chead .sw').style.background = c.color;
+  sec.querySelector('.sv').style.setProperty('--h', Math.round(cv.hsv.h));
+  Object.assign(sec.querySelector('.sv-punto').style, { left: cv.hsv.s * 100 + '%', top: (1 - cv.hsv.v) * 100 + '%' });
+  sec.querySelector('.hue-punto').style.left = cv.hsv.h / 3.6 + '%';
+  sec.querySelector('.pprev').style.background = c.color;
+  if (!desdeHex) sec.querySelector('.hex').value = c.color.slice(1);
+  sec.querySelectorAll('.psw').forEach(b => b.classList.toggle('on', b.dataset.color === c.color));
   marcarCambio();
+}
+
+$('arbol').addEventListener('pointerdown', e => {
+  const zona = e.target.closest('.sv, .hue');
+  if (!zona) return;
+  e.preventDefault();
+  const sec = zona.closest('.carpeta');
+  const mover = ev => {
+    const r = zona.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+    const y = Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height));
+    if (zona.classList.contains('sv')) { cv.hsv.s = x; cv.hsv.v = 1 - y; } else cv.hsv.h = Math.min(x * 360, 359.9);
+    aplicarColor(sec, false);
+  };
+  zona.setPointerCapture(e.pointerId);
+  mover(e);
+  zona.onpointermove = mover;
+  zona.onpointerup = zona.onpointercancel = () => { zona.onpointermove = zona.onpointerup = zona.onpointercancel = null; };
 });
-$('arbol').addEventListener('change', e => {
-  if (e.target.type === 'color') { cv.colorDe = null; pintarCarpetas(); }
+$('arbol').addEventListener('input', e => {
+  if (!e.target.classList.contains('hex')) return;
+  const v = e.target.value.replace(/[^0-9a-f]/gi, '');
+  if (v.length !== 6) return;
+  cv.hsv = hexAHsv('#' + v.toLowerCase());
+  aplicarColor(e.target.closest('.carpeta'), true);
 });
 
-// Clicking elsewhere or pressing Esc closes the colour picker and the move menu.
+// Clicking elsewhere or pressing Esc closes the colour picker.
 document.addEventListener('click', e => {
   if (cv.colorDe !== null && !e.target.closest('.paleta') && !e.target.closest('[data-acc="color"]')) { cv.colorDe = null; pintarCarpetas(); }
-  if (cv.moverDe !== null && !e.target.closest('.mover') && !e.target.closest('.rrow .asa')) { cv.moverDe = null; pintarCarpetas(); }
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && (cv.colorDe !== null || cv.moverDe !== null)) { cv.colorDe = cv.moverDe = null; pintarCarpetas(); }
+  if (e.key === 'Escape' && cv.colorDe !== null) { cv.colorDe = null; pintarCarpetas(); }
 });
 
 // Drag and drop: a repo onto a folder (or /unsorted), or a folder above/below another to reorder.
