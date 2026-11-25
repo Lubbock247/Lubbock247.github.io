@@ -336,7 +336,9 @@ new ResizeObserver(() => {
 }).observe($('cal'));
 
 $('id-btn').addEventListener('click', () => {
-  $('token').value = token();
+  // Always empty, so a new key is never pasted after the old one.
+  $('token').value = '';
+  $('token').placeholder = token() ? 'a key is saved · paste a new one to replace it' : 'github_pat_…';
   $('token-err').textContent = '';
   $('token-err').classList.remove('ok');
   $('ajustes').showModal();
@@ -344,11 +346,18 @@ $('id-btn').addEventListener('click', () => {
 
 $('guardar').addEventListener('click', async e => {
   e.preventDefault();
-  const t = $('token').value.trim();
-  if (!t) { $('token-err').textContent = 'empty key'; return; }
+  const t = $('token').value.replace(/\s+/g, '');
+  const err = $('token-err');
+  err.classList.remove('ok');
+  if (!t) { err.textContent = 'empty key'; return; }
+  if (!/^(github_pat_|ghp_)/.test(t)) { err.textContent = 'this does not look like a GitHub key (it should start with github_pat_)'; return; }
   const h = { Authorization: 'Bearer ' + t, Accept: 'application/vnd.github+json' };
-  const r = await fetch('https://api.github.com/user', { headers: h });
-  if (!r.ok) { $('token-err').textContent = 'invalid key'; return; }
+  let r;
+  try { r = await fetch('https://api.github.com/user', { headers: h }); } catch {
+    err.textContent = 'network error, try again'; return;
+  }
+  if (r.status === 401) { err.textContent = 'GitHub rejects this key: it was deleted, regenerated, expired or copied incomplete'; return; }
+  if (!r.ok) { err.textContent = `GitHub refused the key (error ${r.status}). Check that the resource owner is Lubbock247`; return; }
   localStorage.setItem(CLAVE_TOKEN, t);
   cargar();
   // Say what the key can see, so a key limited to public repos is obvious.
@@ -357,7 +366,6 @@ $('guardar').addEventListener('click', async e => {
     const repos = await (await fetch('https://api.github.com/user/repos?per_page=100&affiliation=owner', { headers: h })).json();
     privados = repos.filter(x => x.private).length;
   } catch {}
-  const err = $('token-err');
   if (privados) {
     err.classList.add('ok');
     err.textContent = `key ok · ${privados} private repos visible`;
