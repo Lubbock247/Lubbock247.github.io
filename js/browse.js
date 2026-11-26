@@ -161,9 +161,29 @@ function pintarCarpetaRepo(info, rr, lista, clave) {
   if (readme) pintarMarkdown(completo, readme.path, rr.ruta, clave);
 }
 
-async function pintarMarkdown(completo, ruta, carpeta, clave) {
+// Renders Markdown with GitHub's own renderer (POST /markdown). The file's HTML view of the
+// contents API is not used: with a key on a private repo it answers with plain JSON.
+async function renderizarMd(texto, completo) {
+  const pedir = clave => fetch('https://api.github.com/markdown', {
+    method: 'POST',
+    headers: Object.assign({ Accept: 'text/html', 'Content-Type': 'application/json' }, clave ? { Authorization: 'Bearer ' + clave } : {}),
+    body: JSON.stringify({ text: texto, mode: 'gfm', context: completo })
+  });
+  let r = await pedir(token());
+  if (!r.ok && token()) r = await pedir('');
+  if (!r.ok) throw new Error(r.status);
+  return r.text();
+}
+
+async function pintarMarkdown(completo, ruta, carpeta, clave, texto) {
   let html;
-  try { html = await pedirRepo(`/repos/${trozos(completo)}/contents/${trozos(ruta)}`, 'application/vnd.github.html', 'text'); } catch {
+  try {
+    if (texto == null) {
+      const f = await pedirRepo(`/repos/${trozos(completo)}/contents/${trozos(ruta)}`);
+      texto = decodificar(f.content || '').texto;
+    }
+    html = await renderizarMd(texto, completo);
+  } catch {
     if (location.hash === clave && $('rp-md')) $('rp-md').innerHTML = '<div class="m">// could not load it</div>';
     return;
   }
@@ -229,7 +249,7 @@ function pintarArchivoRepo(info, rr, f, clave) {
     </div>`;
   $('cb-acc').innerHTML = (esMd ? `<button type="button" class="acc on" data-ver="md">PREVIEW</button><button type="button" class="acc" data-ver="src">CODE</button>` : '')
     + `<button type="button" class="acc" data-copiar>COPY</button>`;
-  if (esMd) pintarMarkdown(completo, f.path, carpeta, clave);
+  if (esMd) pintarMarkdown(completo, f.path, carpeta, clave, texto);
 
   const lengua = LENGUAJES[ext] || (/^dockerfile$/i.test(f.name) ? 'dockerfile' : /^makefile$/i.test(f.name) ? 'makefile' : '');
   if (!lengua || texto.length > 400000) return;
